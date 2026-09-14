@@ -21,9 +21,10 @@ public partial class Main
     {
         var box=OpenPanel("Block catalog","Drag a block into your inventory or hotbar. Click a block to take 64.");
         ((PanelContainer)box.GetParent().GetParent()).CustomMinimumSize=new Vector2(660,0);
-        var displays=new HBoxContainer();box.AddChild(displays);
+        var displays=new HFlowContainer();box.AddChild(displays);
         displays.AddChild(Button("TV · Black Concrete",()=>{AddScreenItem("tv");ShowWorkbench();}));
         displays.AddChild(Button("Computer · Black Concrete",()=>{AddScreenItem("desktop");ShowWorkbench();}));
+        displays.AddChild(Button("Project Board · Bookshelf",()=>{AddProjectBoard();ShowWorkbench();}));
         var search=new LineEdit {Name="BlockSearch",Text=workbenchQuery,PlaceholderText="Search blocks...",ClearButtonEnabled=true};box.AddChild(search);
         var grid=new GridContainer {Name="BlockCatalog",Columns=9};grid.AddThemeConstantOverride("h_separation",0);grid.AddThemeConstantOverride("v_separation",0);box.AddChild(grid);
         var pager=new HBoxContainer();box.AddChild(pager);var count=new Label();Button? prev=null,next=null;

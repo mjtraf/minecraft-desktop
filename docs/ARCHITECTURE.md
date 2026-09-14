@@ -45,7 +45,7 @@ The [state store](../src/Cave.Core/StateStore.cs) writes versioned records atomi
 
 ## Tests and current limits
 
-[GitHub Actions](https://github.com/mjtraf/minecraft-desktop/actions) runs 58 core checks and three transport checks on Windows. These cover source-file integrity, discovery, duplicate links, save recovery, placement, water flow, message ordering, and stalled peers.
+[GitHub Actions](https://github.com/mjtraf/minecraft-desktop/actions) runs 75 core checks and three transport checks on Windows. These cover source-file integrity, discovery, duplicate links, save recovery, placement, water flow, message ordering, and stalled peers.
 
 Additional in-app checks require the resource pack and an interactive desktop. Desktop attachment, microphone input, recording, and multi-monitor behavior need broader testing across PCs. Block interactions cover a subset of Minecraft behavior.
 
@@ -54,3 +54,11 @@ Additional in-app checks require the resource pack and an interactive desktop. D
 Computer blocks retain an agent ID through inventory, drops, and relocation. Fresh adjacent screens inherit one neighbour’s ID; existing agents never merge. Version 8 world saves contain names and approach preferences. The original agent retains `villager-agent.json`; new agents store separate histories and session locks under `agents/<id>/`.
 
 Every workstation input, status event, and frame channel is addressed by agent ID. Native controls remain off-screen and are operated through the in-world display. Voice recording is push-to-talk; a leading name selects the recipient, followed by explicit text review. Villager questions and completion gestures do not activate application windows.
+
+## Project orchestration
+
+The [project runner](../src/Cave.Core/Projects.cs) validates structured plans against the assigned roster and an acyclic dependency graph. A single execution lane sequences assignments in their shared folder. Dependency results become the next task's context, and the lead reviews the combined output. This is explicit project-team orchestration rather than unrestricted native subagent recruitment.
+
+The [desktop studio](../src/Cave.Desktop/ProjectStudio.cs) owns project persistence and IPC actions. [Project turns](../src/Cave.Desktop/ProjectAgent.cs) use App Server output schemas, per-project thread identities, read-only planning/review, interruption, and turn steering. Project context is stored separately from personal villager conversations. The [in-world board](../Game/ProjectBoard.cs) edits project drafts and exposes tasks, questions, journals and output links. World save version 9 adds the placeable bookshelf's identity; project records use a separate versioned save.
+
+Offline tests cover team restrictions, dependency order, handoffs, interruption, resumption and save recovery. An isolated live App Server check verifies structured results and project-thread resumption without editing project files. Desktop integration checks exercise the board and persisted team selection. Parallel writing through separate Git worktrees is outside this version.

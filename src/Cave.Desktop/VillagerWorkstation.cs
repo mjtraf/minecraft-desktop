@@ -8,6 +8,7 @@ internal sealed class VillagerMemory
     public string Name {get;set;}="Villager";
     public bool Configured {get;set;}
     public bool ApproachForQuestions {get;set;}=true;
+    public Dictionary<string,string> ProjectThreads {get;set;}=[];
     public string? ThreadId {get;set;}
     public string Folder {get;set;}=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Cozy Cave Work");
     public string Transcript {get;set;}="";
@@ -70,7 +71,7 @@ internal sealed partial class VillagerWorkstation:Form
         timer.Tick+=(_,_)=>Tick();timer.Start();
     }
     private void Append(string text){transcript.AppendText(text);transcript.SelectionStart=transcript.TextLength;transcript.ScrollToCaret();dirty=true;}
-    private void Report(string text){status.Text=text;send("villager-status",new {text,working=session.Busy,listening});}
+    private void Report(string text){ProjectStatus?.Invoke(text);status.Text=text;send("villager-status",new {text,working=session.Busy,listening});}
     private void Receive(string kind,string text)
     {
         switch(kind)
@@ -78,7 +79,8 @@ internal sealed partial class VillagerWorkstation:Form
             case "delta":Append(text);break;
             case "output":Append(text);break;
             case "activity":Append("\n["+text+"]\n");break;
-            case "thread":memory.ThreadId=text;SaveMemory();break;
+            case "thread":if(activeProjectId!=null)memory.ProjectThreads[activeProjectId]=text;else memory.ThreadId=text;SaveMemory();break;
+            case "completed":CompleteProjectTurn(text);break;
             case "status":Report(text);if(!session.Busy){Append("\n");SaveMemory();}break;
             case "error":Append("\nError: "+text+"\n");Report("Needs attention — open workstation");break;
             case "approval":
@@ -117,6 +119,7 @@ internal sealed partial class VillagerWorkstation:Form
     }
     internal async Task Submit(string text)
     {
+        if(projectCompletion!=null || ProjectWorkActive?.Invoke()==true){Report("A project team is working. Stop it from the project board before starting a separate task.");return;}
         if(!memory.Configured){Report("Needs attention — open this computer to choose a name and project folder.");return;}
         text=text.Trim();if(text.Length==0)return;if(session.Busy){Report("Already working — Stop before sending another task");return;}
         try{Directory.CreateDirectory(memory.Folder);Append("\nYou: "+text+"\n\nVillager: ");input.Clear();Report("Connecting to Codex…");await session.Send(text,memory.Folder);Report("Working");SaveMemory();}
@@ -174,7 +177,7 @@ internal sealed partial class VillagerWorkstation:Form
     internal void CancelSpeech(){listening=false;try{speech?.RecognizeAsyncCancel();}catch{} }
     private void SaveMemory()
     {
-        try{Directory.CreateDirectory(AgentDirectory);memory.Transcript=transcript.Text;memory.ThreadId=session.ThreadId;File.WriteAllText(MemoryPath+".tmp",JsonSerializer.Serialize(memory));if(File.Exists(MemoryPath))File.Replace(MemoryPath+".tmp",MemoryPath,MemoryPath+".bak");else File.Move(MemoryPath+".tmp",MemoryPath);dirty=false;}catch(Exception e){Report("Agent history save failed: "+e.Message);}
+        try{Directory.CreateDirectory(AgentDirectory);memory.Transcript=transcript.Text;if(activeProjectId!=null && session.ThreadId!=null)memory.ProjectThreads[activeProjectId]=session.ThreadId;else if(activeProjectId==null)memory.ThreadId=session.ThreadId;File.WriteAllText(MemoryPath+".tmp",JsonSerializer.Serialize(memory));if(File.Exists(MemoryPath))File.Replace(MemoryPath+".tmp",MemoryPath,MemoryPath+".bak");else File.Move(MemoryPath+".tmp",MemoryPath);dirty=false;}catch(Exception e){Report("Agent history save failed: "+e.Message);}
     }
     private void Tick()
     {
@@ -189,7 +192,7 @@ internal sealed partial class VillagerWorkstation:Form
     }
     protected override void Dispose(bool disposing)
     {
-        if(disposing && !closing){closing=true;promptResult?.TrySetResult(null);timer.Stop();CancelSpeech();speech?.Dispose();SaveMemory();session.Dispose();frames.Dispose();timer.Dispose();sessionLease.Dispose();}
+        if(disposing && !closing){closing=true;projectCompletion?.TrySetException(new IOException("Workstation closed."));promptResult?.TrySetResult(null);timer.Stop();CancelSpeech();speech?.Dispose();SaveMemory();session.Dispose();frames.Dispose();timer.Dispose();sessionLease.Dispose();}
         base.Dispose(disposing);
     }
 }

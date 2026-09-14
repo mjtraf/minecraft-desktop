@@ -19,6 +19,7 @@ internal sealed partial class DesktopContext
                 string name=message.TryGetProperty("name",out var n)?n.GetString()??"Villager":"Villager";
                 station=new VillagerWorkstation((command,payload)=>SendAgent(id,command,payload),()=>{SendAgent(id,"villager-return",null);Enter();},id,name,
                     candidate=>!workstations.Any(pair=>pair.Key!=id && pair.Value.AgentName.Equals(candidate,StringComparison.OrdinalIgnoreCase)));
+                station.ProjectWorkActive=()=>projectRunner?.Busy==true;station.ProjectStatus+=status=>projectRunner?.Notify(id,status);
                 workstations.Add(id,station);
             }
             SendAgent(id,"villager-ready",new{channel=station.Channel});station.ReportProfile();

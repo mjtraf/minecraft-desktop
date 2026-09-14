@@ -123,6 +123,7 @@ public partial class Main
         if(d.Kind=="writable_book") {d.X=Mathf.Round(d.X);d.Z=Mathf.Round(d.Z);}
         var node = new Node3D { Position = new Vector3(d.X, d.Y, d.Z), RotationDegrees = new Vector3(0, d.Rotation, 0) }; world.AddChild(node);
         string id = "$decor:" + d.Id; placedNodes[id]=node;
+        if(d.ProjectBoard)ProjectBoardVisual(node);
         if(d.Kind=="writable_book") {node.Name="DeskNotebook";BookVisual(node);Collider(node,new Vector3(0,.09f,0),new Vector3(.55f,.18f,.68f),id);}
         else if (d.Kind == "item_frame") {if(d.TabletopFrame) {CreateTabletopFrame(node,d);Collider(node,new Vector3(0,.32f,0),new Vector3(.66f,.64f,.3f),id);} else {CreatePictureVisual(node,d);BlockCollision(node,"item_frame",id);}}
         else if (d.Kind == "lantern")

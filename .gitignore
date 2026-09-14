@@ -27,3 +27,6 @@ unsaved-session*.json
 DESIGN.md
 PRODUCT.md
 VALIDATION.md
+
+# Local project goals, team history, and output paths.
+projects.json*

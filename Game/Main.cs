@@ -36,7 +36,7 @@ public partial class Main : Node3D
     public override void _Ready()
     {
         DisplayServer.WindowSetTitle("Minecraft Desktop");
-        var args = OS.GetCmdlineUserArgs(); proof = args.Contains("--proof"); selfTesting=args.Contains("--screen-test") || args.Contains("--villager-test") || args.Contains("--chest-test") || args.Contains("--save-reopen") || args.Contains("--save-audit") || args.Contains("--world-test") || args.Contains("--dock-ui-test") || args.Contains("--self-test") || args.Contains("--tv-smoke") || args.Contains("--picture-test");
+        var args = OS.GetCmdlineUserArgs(); proof = args.Contains("--proof"); selfTesting=args.Contains("--project-board-test") || args.Contains("--screen-test") || args.Contains("--villager-test") || args.Contains("--chest-test") || args.Contains("--save-reopen") || args.Contains("--save-audit") || args.Contains("--world-test") || args.Contains("--dock-ui-test") || args.Contains("--self-test") || args.Contains("--tv-smoke") || args.Contains("--picture-test");
         var data = args.Contains("--test-data") ? args[Array.IndexOf(args, "--test-data") + 1] : System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "CozyCave");
         store = new StateStore(data);
         try { worldSession=store.AcquireSession();state = store.Load();GD.Print("World loaded: "+store.DirectoryPath); }
@@ -58,7 +58,8 @@ public partial class Main : Node3D
         AddChild(player); player.Rotation = new Vector3(0, state.Yaw, 0);
         camera = new Camera3D { Position = new Vector3(0, 1.62f, 0), Fov = 75, Near = 0.05f, Far = 150 };
         player.AddChild(camera);
-        BuildHud(); BuildHotbar(); BuildAppDock(); SetupAudio(); BuildCat(); BuildVillager();
+        BuildHud(); BuildHotbar(); BuildAppDock();
+        if(!state.ProjectBoardCreated){state.ProjectBoardCreated=true;AddProjectBoard(false);} SetupAudio(); BuildCat(); BuildVillager();
         interactionCursor=AddInteractionCursor(this,()=>softwareCursorActive && pictureDialog==null);
         foreach (var drop in state.Drops) SpawnDrop(drop);
         GetWindow().ContentScaleSize = new Vector2I((int)(1440 / state.Settings.UiScale), (int)(900 / state.Settings.UiScale));
@@ -75,6 +76,7 @@ public partial class Main : Node3D
         if (args.Contains("--self-test")) _ = RunSmokeTests(args[Array.IndexOf(args, "--self-test") + 1]);
         if (args.Contains("--dock-ui-test")) _ = RunDockUiTest(args[Array.IndexOf(args,"--dock-ui-test")+1]);
         if(args.Contains("--save-reopen")) _ = RunSaveReopenTest(args[Array.IndexOf(args,"--save-reopen")+1],args.Contains("--verify-save"),false);
+        if(args.Contains("--project-board-test")) _ = RunProjectBoardTests(args[Array.IndexOf(args,"--project-board-test")+1]);
         if(args.Contains("--screen-test")) _ = RunScreenTests(args[Array.IndexOf(args,"--screen-test")+1]);
         if(args.Contains("--villager-test")) _ = RunVillagerTests(args[Array.IndexOf(args,"--villager-test")+1]);
         if(args.Contains("--chest-test")) _ = RunChestStorageTest(args[Array.IndexOf(args,"--chest-test")+1],args.Contains("--verify-save"));
@@ -180,6 +182,7 @@ public partial class Main : Node3D
     {
         if (e is InputEventKey { Pressed: true, Echo: false } key)
         {
+            if(panel==null && key.Keycode==Key.P){ShowProjectBoard();GetViewport().SetInputAsHandled();return;}
             if(panel==null && key.CtrlPressed && key.Keycode==Key.Space) {OpenDesktopSystem("search");return;}
             if(panel==null && key.PhysicalKeycode==Key.Quoteleft) {ToggleDesktopHotbar();GetViewport().SetInputAsHandled();return;}
             if(panel==null && desktopHotbarActive && key.Keycode==Key.Enter) {UseDesktopSlot();return;}
@@ -209,6 +212,7 @@ public partial class Main : Node3D
         {
             if (walking && mouse.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown) { if(desktopHotbarActive) MoveDesktopSelection(mouse.ButtonIndex==MouseButton.WheelUp?-1:1);else SelectHotbar(state.SelectedSlot + (mouse.ButtonIndex == MouseButton.WheelUp ? -1 : 1)); return; }
             if(mouse.ButtonIndex is MouseButton.Left or MouseButton.Right && !mouseActionsReady) {GetViewport().SetInputAsHandled();return;}
+            if(walking && mouse.ButtonIndex==MouseButton.Right && IsProjectBoard(hovered)){ShowProjectBoard();return;}
             if(walking && ((hovered=="$workstation" && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right) || (TargetVillagerId()!=null && mouse.ButtonIndex==MouseButton.Right))){OpenVillagerMonitor();return;}
             if(walking && SurfaceFor(hovered) is {} display && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right)
             {
@@ -284,6 +288,9 @@ public partial class Main : Node3D
             var p = message.TryGetProperty("payload", out var payload) ? payload : default;
             switch (command)
             {
+                case "projects-state": ReceiveProjects(p);break;
+                case "project-selected": studioSelection=p.GetProperty("id").GetString();ShowProjectBoard();break;
+                case "project-error": projectSavePending=false;studioError=p.GetProperty("text").GetString()??"Project unavailable";if(projectBoardOpen)RenderProjectBoard();else Toast(studioError);break;
                 case "villager-ready": ReceiveVillagerReady(p);break;
                 case "villager-profile": ReceiveVillagerProfile(p);break;
                 case "villager-status": ReceiveVillager(p);break;

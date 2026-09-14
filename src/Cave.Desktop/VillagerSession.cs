@@ -9,6 +9,7 @@ internal sealed class VillagerSession:IDisposable
     private readonly ConcurrentDictionary<int,TaskCompletionSource<JsonElement>> requests=[];
     private readonly SemaphoreSlim writeGate=new(1),startGate=new(1);
     private int sequence;
+    private string finalMessage="";
     private bool disposed;
     internal string? ThreadId,TurnId;
     internal bool Busy {get;private set;}
@@ -50,7 +51,8 @@ internal sealed class VillagerSession:IDisposable
                     // No silent approval of unrecognized prompts. The user can answer in the workstation.
                     Event?.Invoke("approval",JsonSerializer.Serialize(new {id=requestId.Clone(),method=name,parameters=p.Clone()}));continue;
                 }
-                if(name=="item/agentMessage/delta")Event?.Invoke("delta",p.GetProperty("delta").GetString()??"");
+                if(name=="item/completed" && p.TryGetProperty("item",out var finishedItem) && finishedItem.GetProperty("type").GetString()=="agentMessage")finalMessage=finishedItem.GetProperty("text").GetString()??"";
+                else if(name=="item/agentMessage/delta")Event?.Invoke("delta",p.GetProperty("delta").GetString()??"");
                 else if(name=="turn/started") {TurnId=p.GetProperty("turn").GetProperty("id").GetString();Busy=true;Event?.Invoke("status","Working");}
                 else if(name=="turn/completed")
                 {
@@ -58,6 +60,7 @@ internal sealed class VillagerSession:IDisposable
                     string status=turn.GetProperty("status").GetString()??"completed";
                     if(turn.TryGetProperty("error",out var err) && err.ValueKind==JsonValueKind.Object)Event?.Invoke("error",err.ToString());
                     Event?.Invoke("status",status=="completed"?"Finished":status);
+                    Event?.Invoke("completed",JsonSerializer.Serialize(new{status,text=finalMessage}));
                 }
                 else if(name=="item/started" && p.TryGetProperty("item",out var item))
                 {
@@ -71,7 +74,7 @@ internal sealed class VillagerSession:IDisposable
             }
         }
         catch(Exception e){if(!disposed)Event?.Invoke("error",e.Message);}
-        finally {Busy=false;foreach(var pair in requests)if(requests.TryRemove(pair.Key,out var waiting))waiting.TrySetException(new IOException("Codex connection closed."));if(!disposed)Event?.Invoke("status","Disconnected — send to reconnect");}
+        finally {Busy=false;foreach(var pair in requests)if(requests.TryRemove(pair.Key,out var waiting))waiting.TrySetException(new IOException("Codex connection closed."));if(!disposed){Event?.Invoke("status","Disconnected — send to reconnect");Event?.Invoke("completed",JsonSerializer.Serialize(new{status="failed",text="Agent connection closed."}));}}
     }
     private async Task Write(object message)
     {
@@ -87,20 +90,23 @@ internal sealed class VillagerSession:IDisposable
         await Ensure();var login=await Request("account/login/start",new {type="chatgpt"});
         if(login.TryGetProperty("authUrl",out var url))Process.Start(new ProcessStartInfo(url.GetString()!){UseShellExecute=true});
     }
-    internal async Task Send(string text,string folder)
+    internal async Task Send(string text,string folder,JsonElement? outputSchema=null,bool readOnly=false,bool teamTask=false)
     {
         if(Busy)throw new InvalidOperationException("Let the current task finish, or press Stop before giving a new instruction.");
-        Busy=true;
+        Busy=true;finalMessage="";
         try
         {
             await Ensure();
             string instructions="You are the user's villager assistant in Minecraft Desktop. Work on coding, research and documents as requested. You have the user's authorization for full local desktop access within their task. Ask before unrelated destructive actions or sending messages to others. Use the existing tools and skills. For Windows desktop control, execute the local helper with --agent-desktop followed by a JSON request FILE path. The helper executable is "+Environment.ProcessPath+". Actions: screenshot (writes a PNG at output and returns virtual-screen bounds), click (x,y, button left/right, double boolean), move (x,y), scroll (delta), text (text), key (keys in SendKeys notation). Read the result from the request file path plus .result.json. Coordinates are actual virtual desktop pixels. Read a screenshot before deciding where to click. This controls the user's real desktop. The workstation and cave can lose focus during these actions. Do not change Minecraft Desktop files unless asked. Explain progress in plain text; do not pretend an operation succeeded.";
-            var options=new {cwd=folder,sandbox="danger-full-access",approvalPolicy="on-request",developerInstructions=instructions};
+            if(teamTask)instructions+=" This is an assigned project-team task. Do not spawn subagents or delegate outside the assigned team. The project board handles delegation. Do not stop, rebuild, launch or restart Minecraft Desktop itself unless the assignment explicitly requests it. End with the required structured result; distinguish completed work from suggestions.";
+            string sandbox=readOnly?"read-only":"danger-full-access";
+            var config=teamTask?new Dictionary<string,object>{{"agents.enabled",false}}:null;
+            var options=new {cwd=folder,sandbox,approvalPolicy="on-request",developerInstructions=instructions,config};
             JsonElement result;
             if(ThreadId==null)result=await Request("thread/start",options);
-            else result=await Request("thread/resume",new {threadId=ThreadId,cwd=folder,sandbox="danger-full-access",approvalPolicy="on-request",developerInstructions=instructions});
+            else result=await Request("thread/resume",new {threadId=ThreadId,cwd=folder,sandbox,approvalPolicy="on-request",developerInstructions=instructions,config});
             ThreadId=result.GetProperty("thread").GetProperty("id").GetString();Event?.Invoke("thread",ThreadId!);
-            var started=await Request("turn/start",new {threadId=ThreadId,input=new[]{new {type="text",text}}});
+            var started=await Request("turn/start",new {threadId=ThreadId,input=new[]{new {type="text",text}},outputSchema});
             TurnId=started.GetProperty("turn").GetProperty("id").GetString();
         }catch{Busy=false;throw;}
     }

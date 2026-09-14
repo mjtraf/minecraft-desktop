@@ -7,6 +7,7 @@ int passed = 0;
 void Assert(bool ok, string message) { if (!ok) throw new Exception(message); Console.WriteLine("PASS " + message); passed++; }
 try
 {
+    await ProjectTests.Run(root,Assert);
     var agentState=CaveState.Create();var legacyScreen=new Decoration("black_concrete",0,0){ScreenRole="desktop"};agentState.Decorations.Add(legacyScreen);
     AgentRegistry.Migrate(agentState);AgentRegistry.Migrate(agentState);
     Assert(agentState.Agents.Count==1 && legacyScreen.AgentId=="legacy","Existing computers migrate to one original agent without duplicating history");
@@ -126,7 +127,7 @@ try
     foreach (var field in new[] { "Supplies", "RemovedTerrain", "BuildingBlocks" }) oldSave.AsObject().Remove(field);
     File.WriteAllText(Path.Combine(store.DirectoryPath, "state.json"), oldSave.ToJsonString());
     var migrated = store.Load();
-    Assert(migrated.Version == 8 && migrated.Supplies["stone"] == 64 && migrated.BuildingBlocks.Count == 0 && migrated.Links.Count == state.Links.Count, "Version 1 save gains building supplies without changing file links");
+    Assert(migrated.Version == 9 && migrated.Supplies["stone"] == 64 && migrated.BuildingBlocks.Count == 0 && migrated.Links.Count == state.Links.Count, "Version 1 save gains building supplies without changing file links");
     migrated.Version = 2; migrated.Supplies["crate"] = 7; migrated.Supplies["plant"] = 3;
     migrated.Decorations.Add(new Decoration("crate", 2, 3));
     store.Save(migrated); var vanilla = store.Load();

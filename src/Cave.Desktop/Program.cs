@@ -8,6 +8,7 @@ internal static class Program
 {
     [STAThread] static void Main(string[] args)
     {
+        if(args.Contains("--project-agent-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--project-agent-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();ProjectAgentTests.Run(output);return;}
         if(args.Contains("--agent-workstations-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--agent-workstations-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();AgentWorkstationTests.Run(output);return;}
         if(args.Contains("--workstation-input-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--workstation-input-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();WorkstationInputTests.Run(output);return;}
         if(args.Contains("--agent-desktop")) {ApplicationConfiguration.Initialize();AgentDesktop.Run(args[Array.IndexOf(args,"--agent-desktop")+1]);return;}
@@ -128,6 +129,7 @@ internal sealed partial class DesktopContext : ApplicationContext
             foreach (var flag in new[] { "--capture", "--test-data", "--tv-smoke" })
                 if (GetArg(flag) is { } value) { psi.ArgumentList.Add(flag); psi.ArgumentList.Add(value); }
             if(GetArg("--villager-scene-test") is {} villagerTest){psi.ArgumentList.Add("--villager-test");psi.ArgumentList.Add(villagerTest);}
+            if(GetArg("--project-board-scene-test") is {} projectTest){psi.ArgumentList.Add("--project-board-test");psi.ArgumentList.Add(projectTest);}
             if(GetArg("--screen-scene-test") is {} screenTest){psi.ArgumentList.Add("--screen-test");psi.ArgumentList.Add(screenTest);}
             renderer = Process.Start(psi)!;
             Program.Log("Renderer started pid=" + renderer.Id);
@@ -273,6 +275,7 @@ internal sealed partial class DesktopContext : ApplicationContext
                 if (!windowed) Attach();
                 else Send("status", new { text = "Windowed mode • Desktop unchanged" });
                 break;
+            case "projects": HandleProjects(message);break;
             case "villager": HandleAgent(message);break;
             case "workstation-pointer":
                 if(workstations.TryGetValue(AgentId(message),out var pointerAgent))pointerAgent.RemotePointer(message.GetProperty("u").GetDouble(),message.GetProperty("v").GetDouble(),message.TryGetProperty("phase",out var phase)?phase.GetString()??"":"");break;
