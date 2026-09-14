@@ -29,11 +29,17 @@ internal sealed partial class DesktopContext
                 case "rename":station.Rename(message.GetProperty("name").GetString()??"");break;
                 case "leave":station.EndInWorld();break;
                 case "send":_=station.Submit(message.GetProperty("text").GetString()??"");break;
+                case "voice-send":_=station.Submit(message.GetProperty("text").GetString()??"",true);break;
                 case "mic-start":foreach(var other in workstations.Values.Where(w=>w!=station))other.CancelSpeech();station.StartSpeech();break;
                 case "mic-stop":station.StopSpeech();break;
                 case "mic-cancel":station.CancelSpeech();break;
             }
         }
-        catch(Exception e){SendAgent(id,"villager-status",new{text="Workstation unavailable: "+e.Message,working=false,listening=false});}
+        catch(Exception e)
+        {
+            SendAgent(id,"villager-status",new{text="Workstation unavailable: "+e.Message,working=false,listening=false});
+            if(message.TryGetProperty("action",out var action) && action.GetString()=="voice-send")
+                SendAgent(id,"villager-request-error",new{text="Workstation unavailable: "+e.Message,prompt=message.GetProperty("text").GetString()??""});
+        }
     }
 }

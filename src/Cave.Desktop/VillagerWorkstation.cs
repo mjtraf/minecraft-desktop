@@ -114,13 +114,14 @@ internal sealed partial class VillagerWorkstation:Form
             approval=approvalQueue.TryDequeue(out var next)?next:null;if(approval!=null)ShowApproval();else{approve.Visible=deny.Visible=false;Report(allow?"Working":"Action declined");}
         }catch(Exception e){Report(e.Message);}
     }
-    internal async Task Submit(string text)
+    internal async Task Submit(string text,bool fromVoice=false)
     {
-        if(projectCompletion!=null || ProjectWorkActive?.Invoke()==true){Report("A project team is working. Stop it from the project board before starting a separate task.");return;}
-        if(!memory.Configured){Report("Needs attention — open this computer to choose a name and project folder.");return;}
-        text=text.Trim();if(text.Length==0)return;if(session.Busy){Report("Already working — Stop before sending another task");return;}
+        void Reject(string reason){Report(reason);if(fromVoice)send("villager-request-error",new{text=reason,prompt=text});}
+        if(projectCompletion!=null || ProjectWorkActive?.Invoke()==true){Reject("A project team is working. Stop it from the project board before starting a separate task.");return;}
+        if(!memory.Configured){Reject("Needs attention — open this computer to choose a name and project folder.");return;}
+        text=text.Trim();if(text.Length==0)return;if(session.Busy){Reject("Already working — Stop before sending another task");return;}
         try{Directory.CreateDirectory(memory.Folder);Append("\nYou: "+text+"\n\nVillager: ");input.Clear();Report("Connecting to Codex…");await session.Send(text,memory.Folder);Report("Working");SaveMemory();}
-        catch(Exception e){Append("\n"+e.Message+"\n");input.Text=text;Report("Could not start — check sign-in and retry");}
+        catch(Exception e){Append("\n"+e.Message+"\n");input.Text=text;Reject("Could not start — check sign-in and retry");}
     }
     private async Task Stop(){try{await session.Stop();Report("Stopping…");}catch(Exception e){Report(e.Message);}}
     private async Task Login(){try{await session.Login();Report("Complete sign-in in your browser");}catch(Exception e){Report(e.Message);}}

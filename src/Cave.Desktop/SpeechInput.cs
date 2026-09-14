@@ -55,7 +55,7 @@ internal sealed partial class VillagerWorkstation
                 float[] samples;lock(microphoneGate)samples=microphoneSamples.ToArray();
                 microphone?.Dispose();microphone=null;speechTask=RecognizeSpeech(samples,cancellation);
             });
-            capture.StartRecording();Report("Listening — release V to review");
+            capture.StartRecording();Report("Listening — release V to send");
         }
         catch(Exception e){FinishSpeech("","Voice input could not start: "+e.Message);}
     }
@@ -87,7 +87,7 @@ internal sealed partial class VillagerWorkstation
     private void FinishSpeech(string text,string? error)
     {
         bool captured=micPeak>0;CancelSpeech();
-        if(error==null && text.Length>0){input.Text=text;send("villager-dictation",new{text});Report("Review your voice request");return;}
+        if(error==null && text.Length>0){input.Text=text;send("villager-dictation",new{text});Report("Voice captured");return;}
         string reason=error??(captured?"No words were recognized. Hold V, speak, then release it. You can also type your request.":"No microphone audio was detected. Check your default input device, mute switch, and Windows microphone permissions.");
         send("villager-voice-error",new{text=reason});Report("Voice input needs attention");
     }
@@ -108,6 +108,6 @@ internal sealed partial class VillagerWorkstation
         if(DateTime.UtcNow-micStarted>TimeSpan.FromSeconds(60)){StopSpeech();return;}
         if(DateTime.UtcNow-micUpdate<TimeSpan.FromMilliseconds(350))return;
         micUpdate=DateTime.UtcNow;
-        send("villager-voice-progress",new{text=micLevel>0?$"Listening · microphone {micLevel}% · Release V to review":"Listening · waiting for microphone audio · Release V to review"});
+        send("villager-voice-progress",new{text=micLevel>0?$"Listening · microphone {micLevel}% · Release V to send":"Listening · waiting for microphone audio · Release V to send"});
     }
 }

@@ -39,7 +39,7 @@ YouTube uses Microsoft Edge WebView2. Villager tasks require an installed, authe
 | Close menu | Escape |
 | Release walking capture | Hold Escape |
 | Project board | P, or right-click a Project Board bookshelf |
-| Dictate to a villager: aim nearby, or say its name from anywhere in the cave | Hold V; release to review |
+| Dictate to a villager: aim nearby, or say its name from anywhere in the cave | Hold V; release to send |
 
 ## Screens
 
@@ -55,9 +55,9 @@ Inside the workstation, click to select controls, type or paste text, drag to se
 
 Saves live in `%LOCALAPPDATA%/CozyCave/`. Internal identifiers and paths retain the original name for save compatibility. This directory includes file paths, notes, and agent transcripts and is not part of the repository.
 
-Voice is push-to-talk in the cave. Say “Alex, research…” while holding V. The review shows the recipient and text; unrecognized names require choosing a villager. Release V to transcribe, review the text, then choose Send task. Audio stays in memory and is not saved or uploaded. Empty recordings and recognition failures offer sound settings, permissions, or typing. Recording uses the Windows default microphone and stops after 60 seconds. The shared model unloads after five idle minutes; the next request includes a short loading delay. Accuracy still depends on the microphone, background sound, and speech.
+Voice is push-to-talk in the cave. Say “Alex, research…” while holding V. Release V to transcribe and send directly to the addressed villager. Unrecognized names require choosing a villager. Audio stays in memory and is not saved or uploaded. Empty recordings and recognition failures offer sound settings, permissions, or typing. Recording uses the Windows default microphone and stops after 60 seconds. The shared model unloads after five idle minutes; the next request includes a short loading delay. Accuracy still depends on the microphone, background sound, and speech.
 
-After you confirm a voice request, **Talking to [name]** shows who will receive follow-ups. Hold V again to reply without repeating the name. Starting with another villager's name selects that villager for review; confirming switches the conversation. Walking near another villager does not redirect it. Escape, “thanks, that's all,” “end conversation,” or two idle minutes clears the selection. Session lock also clears it. Ending conversation mode does not stop a task or erase its history. Each request still needs confirmation; a reply to a busy villager remains in review until it finishes.
+A villager acknowledges voice activation with a “hmm” and walks to its computer to sit. **Talking to [name]** shows who receives follow-ups. Hold V to reply without repeating the name, or start with another villager's name to switch. Calling a name alone activates conversation without sending an empty task. Recognized requests go straight to the agent; unclear recipients, busy agents, and connection failures retain a recovery screen. Walking near another villager does not redirect the conversation. Escape, “thanks, that's all,” “end conversation,” or two idle minutes clears the selection. Session lock also clears it. Ending conversation mode does not stop a task or erase its history.
 
 ## Project studio
 

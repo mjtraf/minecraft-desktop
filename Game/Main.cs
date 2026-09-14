@@ -298,6 +298,9 @@ public partial class Main : Node3D
                 case "villager-voice-progress": if(voicePending && MessageAgent(p)==voiceRecorder)Toast(p.GetProperty("text").GetString()??"");break;
                 case "villager-voice-error": ShowVoiceError(p);break;
                 case "villager-dictation": ReviewVillagerVoice(p.GetProperty("text").GetString()??"");break;
+                case "villager-request-error":
+                    CancelVillagerSpeech();voicePending=true;voiceTarget=MessageAgent(p);voiceConversation.End();
+                    ReviewVillagerVoice(p.GetProperty("prompt").GetString()??"",true);Toast(p.GetProperty("text").GetString()??"The request could not start.");break;
                 case "villager-return": LeaveTelevision();backgroundApp=false;StartWalking();break;
                 case "tv-ready": ConnectTv(p.GetProperty("channel").GetString()!);break;
                 case "tv-status": ReceiveTv(p);break;

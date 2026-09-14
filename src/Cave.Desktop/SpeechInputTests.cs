@@ -38,6 +38,8 @@ internal static class SpeechInputTests
                 station.SetSuspended(false);messages.Clear();station.StartSpeech(wav);await Wait();
                 Check(messages.Any(m=>m.Command=="villager-dictation"),"Voice works again after unlocking");
                 results.Add($"Working set after tests: {Process.GetCurrentProcess().WorkingSet64/1048576} MiB");
+                messages.Clear();station.ProjectWorkActive=()=>true;await station.Submit("Keep this voice request",true);
+                Check(messages.Any(m=>m.Command=="villager-request-error"),"Rejected automatic voice requests return an actionable error to the game");
             }
             catch(Exception e){results.Add("FAIL "+e);}
             File.WriteAllLines(Path.Combine(output,"results.txt"),results);host.Close();
