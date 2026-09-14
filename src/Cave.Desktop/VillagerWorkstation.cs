@@ -138,6 +138,12 @@ internal sealed partial class VillagerWorkstation:Form
     internal void OpenMonitor(){if(WindowState==FormWindowState.Minimized)WindowState=FormWindowState.Normal;ShowInTaskbar=true;if(Location.X< -10000){var area=Screen.PrimaryScreen!.WorkingArea;Location=new Point(area.X+Math.Max(0,(area.Width-Width)/2),area.Y+Math.Max(0,(area.Height-Height)/2));}Show();Activate();input.Focus();}
     internal void ParkMonitor(){ShowInTaskbar=false;Location=new Point(-20000,-20000);}
     private void Return(){EndInWorld();ParkMonitor();returnToCave();}
+    internal void Rename(string name)
+    {
+        name=name.Trim();
+        if(!Cave.Core.AgentRegistry.CanName([],agentId,name)||!canName(name))throw new InvalidOperationException("Choose a unique name, 2–32 letters or numbers.");
+        memory.Name=name;nameButton.Text=name;SaveMemory();ReportProfile();
+    }
     internal void ReportProfile()=>send("villager-profile",new {name=memory.Name,approach=memory.ApproachForQuestions});
     internal async Task ConfigureAgent()
     {

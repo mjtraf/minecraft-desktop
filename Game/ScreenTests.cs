@@ -33,6 +33,22 @@ public partial class Main
             var oldPosition=camera.Position;OpenVillagerMonitor();
             Check(tvFocused && ScreenInputCommand=="workstation-input" && !walking,"Computer zooms into its in-world display and routes input to the workstation");
             Check(TryScreenAim(activeScreen!,out _),"Zoomed computer screen accepts pointer targeting");
+            var obstruction=new StaticBody3D();world.AddChild(obstruction);obstruction.GlobalPosition=camera.GlobalPosition-camera.GlobalBasis.Z*.3f;
+            obstruction.AddChild(new CollisionShape3D{Shape=new BoxShape3D{Size=new Vector3(3,3,.1f)}});await Frames(3);
+            bool corners=true;
+            foreach(var expected in new[]{new Vector2(.1f,.1f),new Vector2(.9f,.1f),new Vector2(.1f,.9f),new Vector2(.9f,.9f)})
+            {
+                var point=activeScreen!.Node.ToGlobal(new Vector3((.5f-expected.X)*activeScreen.Size.X,(.5f-expected.Y)*activeScreen.Size.Y,0));
+                var cursor=camera.UnprojectPosition(point);
+                corners &= TryScreenAim(activeScreen,out var actual,cursor)&&actual.DistanceTo(expected)<.01f;
+            }
+            Check(corners,"Focused computer maps all corners even when a villager or furniture crosses the view");
+            obstruction.QueueFree();
+            var clickPosition=camera.UnprojectPosition(activeScreen!.Node.ToGlobal(new Vector3(-activeScreen.Size.X*.25f,activeScreen.Size.Y*.25f,0)));
+            tvLastAim=new Vector2(.1f,.9f);HandleTvInput(new InputEventMouseButton{ButtonIndex=MouseButton.Left,Pressed=false,Position=clickPosition});
+            Check(tvLastAim.DistanceTo(new Vector2(.75f,.25f))<.01f && tvFocused,"Release uses the current event position and keeps the computer open");
+            HandleTvInput(new InputEventMouseButton{ButtonIndex=MouseButton.Left,Pressed=false,Position=new Vector2(-100,-100)});
+            Check(tvLastAim.X<0 && tvFocused,"Releasing outside the screen cannot activate a stale button");
             if(bridge.Connected)
             {
                 for(int i=0;i<180 && workstationTexture==null;i++)await Frames(1);

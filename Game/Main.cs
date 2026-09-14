@@ -213,6 +213,7 @@ public partial class Main : Node3D
             if (walking && mouse.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown) { if(desktopHotbarActive) MoveDesktopSelection(mouse.ButtonIndex==MouseButton.WheelUp?-1:1);else SelectHotbar(state.SelectedSlot + (mouse.ButtonIndex == MouseButton.WheelUp ? -1 : 1)); return; }
             if(mouse.ButtonIndex is MouseButton.Left or MouseButton.Right && !mouseActionsReady) {GetViewport().SetInputAsHandled();return;}
             if(walking && mouse.ButtonIndex==MouseButton.Right && IsProjectBoard(hovered)){ShowProjectBoard();return;}
+            if(walking && hovered!="$workstation" && TargetVillagerId() is {} renameId && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right){ShowVillagerName(renameId);GetViewport().SetInputAsHandled();return;}
             if(walking && ((hovered=="$workstation" && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right) || (TargetVillagerId()!=null && mouse.ButtonIndex==MouseButton.Right))){OpenVillagerMonitor();return;}
             if(walking && SurfaceFor(hovered) is {} display && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right)
             {

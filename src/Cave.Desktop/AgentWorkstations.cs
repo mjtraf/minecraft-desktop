@@ -26,6 +26,7 @@ internal sealed partial class DesktopContext
             switch(message.GetProperty("action").GetString())
             {
                 case "open":foreach(var other in workstations.Values.Where(w=>w!=station))other.EndInWorld();station.OpenInWorld();break;
+                case "rename":station.Rename(message.GetProperty("name").GetString()??"");break;
                 case "leave":station.EndInWorld();break;
                 case "send":_=station.Submit(message.GetProperty("text").GetString()??"");break;
                 case "mic-start":foreach(var other in workstations.Values.Where(w=>w!=station))other.CancelSpeech();station.StartSpeech();break;

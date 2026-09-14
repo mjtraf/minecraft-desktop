@@ -40,6 +40,11 @@ internal static class WorkstationInputTests
                 var backAt=station.PointToClient(back.PointToScreen(new Point(back.Width/2,back.Height/2)));
                 station.RemotePointer(backAt.X/(double)station.Width,backAt.Y/(double)station.Height,"down");station.RemotePointer(-.05,-.05,"cancel");
                 station.RemotePointer(backAt.X/(double)station.Width,backAt.Y/(double)station.Height,"up");Check(!returned,"Cancelled pointer press does not activate a button on focus loss");
+                station.Rename("Alex");
+                var saved=JsonSerializer.Deserialize<VillagerMemory>(File.ReadAllText(Path.Combine(Program.DataPath,"villager-agent.json")))!;
+                Check(station.AgentName=="Alex" && saved.Name=="Alex","Direct rename updates and persists the existing workstation profile");
+                bool invalid=false;try{station.Rename("!");}catch(InvalidOperationException){invalid=true;}
+                Check(invalid && station.AgentName=="Alex","Invalid rename preserves the existing name");
                 Click(back);Check(returned,"Back to cave leaves screen interaction");
             }
             catch(Exception e){File.WriteAllText(Path.Combine(output,"failure.txt"),e.ToString());}

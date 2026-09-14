@@ -45,7 +45,7 @@ YouTube uses Microsoft Edge WebView2. Villager tasks require an installed, authe
 
 The workbench provides TV and computer variants of black concrete. A short click zooms into the display; holding left-click while walking mines the block. Escape leaves screen interaction. Adjacent blocks with the same source and facing join into a larger screen. TV blocks share one player. A separate computer creates an independent villager; a fresh computer block placed adjacent to an existing screen enlarges that workstation. Moving established computers together does not merge their agents. Breaking a computer does not interrupt its agent task.
 
-On first use, choose a unique villager name and project folder. Click the name button later to rename it or change whether it approaches for questions. Your original workstation keeps its saved conversation.
+On first use, choose a unique villager name and project folder. Click the villager itself to rename it, or use the name button inside its workstation to change its name and whether it approaches for questions. Your original workstation keeps its saved conversation.
 
 Villagers gesture quietly when finished. If enabled, a villager needing your answer walks nearby only while you are exploring; it stops short and never opens a panel automatically. A chair is added when there is clear floor space beside a new workstation. You can move or remove it like any other stair block.
 

@@ -206,6 +206,25 @@ public partial class Main
         if(!key.Pressed && voiceHeld){voiceHeld=false;bridge.Send(new{command="villager",agentId=voiceRecorder,action="mic-stop"});GetViewport().SetInputAsHandled();return true;}return false;
     }
     private void CancelVillagerSpeech(){if(!voiceHeld && !voicePending)return;voiceHeld=false;voicePending=false;bridge.Send(new{command="villager",agentId=voiceRecorder,action="mic-cancel"});voiceRecorder=voiceTarget=null;}
+    private string? pendingVillagerRenameId,pendingVillagerRename;
+    private void ShowVillagerName(string id)
+    {
+        if(!agents.TryGetValue(id,out var actor))return;
+        var box=OpenPanel("Name villager");
+        var entry=new LineEdit{Text=actor.Profile.Name,MaxLength=32,CustomMinimumSize=new Vector2(480,44)};box.AddChild(entry);
+        var message=new Label{Text="Use a unique name you can say when holding V."};box.AddChild(message);
+        void Rename()
+        {
+            string name=entry.Text.Trim();
+            if(!AgentRegistry.CanName(state.Agents,id,name)){message.Text="Choose a unique name of 2–32 letters or numbers.";return;}
+            if(!bridge.Connected){message.Text="The workstation is disconnected. Try again when connected.";return;}
+            pendingVillagerRenameId=id;pendingVillagerRename=name;bridge.Send(new{command="villager",agentId=id,action="rename",name});
+            message.Text="Name sent. Close this panel to return to the cave.";
+        }
+        entry.TextSubmitted+=_=>Rename();
+        var row=new HBoxContainer();box.AddChild(row);row.AddChild(Button("Save name",Rename));row.AddChild(Button("Cancel",ClosePanelAndResume));
+        entry.GrabFocus();entry.SelectAll();
+    }
     private void OpenVillagerMonitor()
     {
         CancelVillagerSpeech();ClosePanel();
@@ -227,7 +246,9 @@ public partial class Main
     private void ReceiveVillagerProfile(JsonElement p)
     {
         if(!agents.TryGetValue(MessageAgent(p),out var a))return;
-        string name=p.GetProperty("name").GetString()??a.Profile.Name;bool approach=p.GetProperty("approach").GetBoolean();
+        string name=p.GetProperty("name").GetString()??a.Profile.Name;
+        if(pendingVillagerRenameId==a.Profile.Id && pendingVillagerRename==name){pendingVillagerRenameId=pendingVillagerRename=null;ClosePanelAndResume();Toast("Villager renamed to "+name);}
+        bool approach=p.GetProperty("approach").GetBoolean();
         if(name==a.Profile.Name && approach==a.Profile.ApproachForQuestions)return;
         a.Profile.Name=name;a.Profile.ApproachForQuestions=approach;Changed();
     }

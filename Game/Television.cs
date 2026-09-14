@@ -69,8 +69,11 @@ public partial class Main
         {
             if(activeScreen?.Role=="tv" && mouse.Pressed && mouse.ButtonIndex==MouseButton.Right && mouse.ShiftPressed){LeaveTelevision();ShowTelevision();}
             else if(!mouse.Pressed && mouse.ButtonIndex==MouseButton.Left)
-                bridge.Send(new{command=ScreenPointerCommand,agentId=activeScreen?.AgentId,u=tvLastAim.X,v=tvLastAim.Y,click=false,phase="up"});
-            else if(mouse.Pressed && TryTvAim(out var uv))
+            {
+                var release=TryTvAim(out var at,mouse.Position)?at:new Vector2(-.05f,-.05f);
+                tvLastAim=release;bridge.Send(new{command=ScreenPointerCommand,agentId=activeScreen?.AgentId,u=release.X,v=release.Y,click=false,phase="up"});
+            }
+            else if(mouse.Pressed && TryTvAim(out var uv,mouse.Position))
             {
                 tvLastAim=uv;
                 if(activeScreen?.Role=="tv" && mouse.ButtonIndex==MouseButton.Middle){tvOn=!tvOn;TvCommand("power");}
@@ -150,11 +153,11 @@ public partial class Main
         try {tvFrames?.Dispose();tvFrames=new Cave.Transport.TvFrameBuffer(channel);tvChannel=channel;}
         catch(Exception e){tvStatus="TV picture unavailable: "+e.Message;RefreshTvControls();}
     }
-    private bool TryTvAim(out Vector2 uv)
+    private bool TryTvAim(out Vector2 uv,Vector2? pointer=null)
     {
         uv=default;if(panel!=null || (!walking && !tvFocused))return false;
         var surface=tvFocused?activeScreen:SurfaceFor(hovered);
-        return surface!=null && (surface.Role=="tv" || tvFocused) && TryScreenAim(surface,out uv);
+        return surface!=null && (surface.Role=="tv" || tvFocused) && TryScreenAim(surface,out uv,pointer);
     }
 
     private bool ClickTelevision()

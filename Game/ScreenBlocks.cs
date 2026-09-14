@@ -74,18 +74,20 @@ public partial class Main
         foreach(var surface in screenSurfaces)foreach(var label in surface.Node.GetChildren().OfType<Label3D>())
             label.Visible=surface.Role=="tv"?(!tvOn || tvTexture==null):!agents.TryGetValue(surface.AgentId??"",out var a)||a.Texture==null;
     }
-    private bool TryScreenAim(ScreenSurface surface,out Vector2 uv)
+    private bool TryScreenAim(ScreenSurface surface,out Vector2 uv,Vector2? pointer=null)
     {
         uv=default;
         if(!GodotObject.IsInstanceValid(surface.Node))return false;
         var origin=camera.GlobalPosition;
-        var direction=tvFocused?camera.ProjectRayNormal(GetViewport().GetMousePosition()):-camera.GlobalBasis.Z;
+        var direction=tvFocused?camera.ProjectRayNormal(pointer??GetViewport().GetMousePosition()):-camera.GlobalBasis.Z;
         var localOrigin=surface.Node.ToLocal(origin);var localDirection=surface.Node.GlobalBasis.Inverse()*direction;
         if(localDirection.Z<=.0001f)return false;
         float distance=-localOrigin.Z/localDirection.Z;if(distance<0 || distance>6)return false;
         var at=localOrigin+localDirection*distance;
         uv=new Vector2(.5f-at.X/surface.Size.X,.5f-at.Y/surface.Size.Y);
         if(uv.X<0 || uv.X>1 || uv.Y<0 || uv.Y>1)return false;
+        // The focused display owns input; furniture and villagers must not occlude its controls.
+        if(tvFocused && surface==activeScreen)return true;
         var query=PhysicsRayQueryParameters3D.Create(origin,origin+direction*6);query.Exclude=[player.GetRid()];
         return SurfaceFor(RayItem(GetWorld3D().DirectSpaceState.IntersectRay(query)))==surface;
     }

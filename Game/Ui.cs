@@ -66,7 +66,7 @@ public partial class Main
     }
     private void ClosePanel(bool sound = true)
     {
-        projectBoardOpen=false;
+        projectBoardOpen=false;pendingVillagerRenameId=pendingVillagerRename=null;
         if(notebookOpen) {Save();notebookOpen=false;}
         buildingInventoryOpen = false; editingFrame=null; musicPanelOpen=false;
         appsOpen=false; ClearCracks();

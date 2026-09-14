@@ -64,6 +64,10 @@ public partial class Main
             HandleVillagerInput(new InputEventKey{Keycode=Key.V,Pressed=false});ReviewVillagerVoice("Robin, write a checklist");
             var picker=Descendants(panel!).OfType<OptionButton>().Single();var prompt=Descendants(panel!).OfType<TextEdit>().Single();
             Check(state.Agents[picker.Selected].Id==robin.Profile.Id && prompt.Text=="write a checklist","Distant named voice selects the intended villager for review");ClosePanelAndResume();
+            hovered="$villager:"+robin.Profile.Id;walking=true;mouseActionsReady=true;
+            _UnhandledInput(new InputEventMouseButton{ButtonIndex=MouseButton.Left,Pressed=true});
+            Check(panel!=null && Descendants(panel).OfType<LineEdit>().Single().Text==robin.Profile.Name && !tvFocused,"Clicking a villager opens its name instead of the computer");
+            ClosePanelAndResume();
             Changed();Check(!dirty && store.Load().WorkstationPosition.SequenceEqual(state.WorkstationPosition),"Workstation position persists in saved world");
             Check(GD.Load<AudioStream>("res://Assets/Vanilla/villager_idle1.ogg")!=null,"Original villager acknowledgement sound loads");
             System.IO.File.WriteAllLines(System.IO.Path.Combine(output,"results.txt"),results);
