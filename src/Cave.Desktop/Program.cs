@@ -8,6 +8,7 @@ internal static class Program
 {
     [STAThread] static void Main(string[] args)
     {
+        if(args.Contains("--memory-recovery-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--memory-recovery-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();MemoryRecoveryTests.Run(output);return;}
         if(args.Contains("--speech-input-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--speech-input-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();SpeechInputTests.Run(output);return;}
         if(args.Contains("--project-agent-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--project-agent-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();ProjectAgentTests.Run(output);return;}
         if(args.Contains("--agent-workstations-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--agent-workstations-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();AgentWorkstationTests.Run(output);return;}
@@ -40,10 +41,13 @@ internal static class Program
         if (!owned) return;
         ApplicationConfiguration.Initialize();
         Recover(RecoveryPath);
+        Log("Startup data="+DataPath+"; roaming="+AppStorage.RoamingRoot);
+        AppDomain.CurrentDomain.UnhandledException+=(_,e)=>Log("Unhandled crash: "+e.ExceptionObject);
+        ParakeetSpeech.PrepareInBackground();
         Application.Run(new DesktopContext(args));
     }
     private static string? testData;
-    internal static string DataPath => testData ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CozyCave");
+    internal static string DataPath => testData ?? AppStorage.Data;
     internal static string RecoveryPath => Path.Combine(DataPath, "desktop-recovery.json");
     internal static void Recover(string path, bool closeRenderer = false)
     {

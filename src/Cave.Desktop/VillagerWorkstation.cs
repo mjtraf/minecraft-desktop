@@ -11,6 +11,7 @@ internal sealed class VillagerMemory
     public string? ThreadId {get;set;}
     public string Folder {get;set;}=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Cozy Cave Work");
     public string Transcript {get;set;}="";
+    public bool WasWorking {get;set;}
 }
 internal sealed partial class VillagerWorkstation:Form
 {
@@ -40,6 +41,9 @@ internal sealed partial class VillagerWorkstation:Form
     internal string AgentName=>memory.Name;
     private string AgentDirectory=>agentId==Cave.Core.AgentRegistry.LegacyId?Program.DataPath:Path.Combine(Program.DataPath,"agents",agentId);
     private string MemoryPath=>Path.Combine(AgentDirectory,"villager-agent.json");
+    private bool recoveredMemory;
+    internal string? RestoredThreadId=>session.ThreadId;
+    internal string ConversationText=>transcript.Text;
     internal VillagerWorkstation(Action<string,object?> send,Action returnToCave,string id="legacy",string name="Villager",Func<string,bool>? nameAvailable=null)
     {
         if(!Cave.Core.AgentRegistry.ValidId(id))throw new ArgumentException("Invalid agent ID");
@@ -47,7 +51,7 @@ internal sealed partial class VillagerWorkstation:Form
         if(id!="legacy")memory.Folder=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Minecraft Desktop Work",id);
         Directory.CreateDirectory(AgentDirectory);sessionLease=new FileStream(Path.Combine(AgentDirectory,"villager.session.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);
         this.send=send;this.returnToCave=returnToCave;Text="Minecraft Desktop — Villager workstation";FormBorderStyle=FormBorderStyle.None;ClientSize=new Size(1000,680);MinimumSize=new Size(760,520);StartPosition=FormStartPosition.CenterScreen;BackColor=Color.FromArgb(65,51,36);KeyPreview=true;
-        try{if(File.Exists(MemoryPath))memory=JsonSerializer.Deserialize<VillagerMemory>(File.ReadAllText(MemoryPath))??new();}catch{if(File.Exists(MemoryPath+".bak"))memory=JsonSerializer.Deserialize<VillagerMemory>(File.ReadAllText(MemoryPath+".bak"))??new();}
+        try{(memory,recoveredMemory)=VillagerMemoryStore.Load(MemoryPath,memory);}catch{sessionLease.Dispose();throw;}
         if(id=="legacy")memory.Configured=true;
         session.ThreadId=memory.ThreadId;transcript.Text=memory.Transcript.Length>0?memory.Transcript:"Your villager's Codex workstation\n\nType a task below, then Send or Ctrl+Enter. Choose Project folder for code or documents.\nIn the cave, aim at your nearby villager and hold V to dictate.\n\nEscape returns to the cave; your task continues. Stop interrupts it.\n";
         var layout=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Padding=new Padding(12)};layout.RowStyles.Add(new RowStyle(SizeType.Absolute,43));layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,106));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,40));Controls.Add(layout);
@@ -66,6 +70,9 @@ internal sealed partial class VillagerWorkstation:Form
         ShowInTaskbar=false;Location=new Point(-20000,-20000);StartPosition=FormStartPosition.Manual;Show();PerformLayout();
         Resize+=(_,_)=>{if(WindowState==FormWindowState.Minimized){WindowState=FormWindowState.Normal;Return();}};
         timer.Tick+=(_,_)=>Tick();timer.Start();
+        if(memory.WasWorking){Append("\nPrevious work was interrupted when the app closed. Your conversation is restored. Send ‘continue’ to resume.\n");Report("Conversation restored — previous task interrupted");}
+        else if(session.ThreadId!=null)Report("Conversation restored");
+        Program.Log($"Agent {agentId} restored thread={session.ThreadId??"none"}, characters={memory.Transcript.Length}, backup={recoveredMemory}");
     }
     private void Append(string text){transcript.AppendText(text);transcript.SelectionStart=transcript.TextLength;transcript.ScrollToCaret();dirty=true;}
     private void Report(string text){ProjectStatus?.Invoke(text);status.Text=text;send("villager-status",new {text,working=session.Busy,listening});}
@@ -164,7 +171,19 @@ internal sealed partial class VillagerWorkstation:Form
     internal void SetSuspended(bool value){suspended=value;if(value)CancelSpeech();}
     private void SaveMemory()
     {
-        try{Directory.CreateDirectory(AgentDirectory);memory.Transcript=transcript.Text;if(activeProjectId!=null && session.ThreadId!=null)memory.ProjectThreads[activeProjectId]=session.ThreadId;else if(activeProjectId==null)memory.ThreadId=session.ThreadId;File.WriteAllText(MemoryPath+".tmp",JsonSerializer.Serialize(memory));if(File.Exists(MemoryPath))File.Replace(MemoryPath+".tmp",MemoryPath,MemoryPath+".bak");else File.Move(MemoryPath+".tmp",MemoryPath);dirty=false;}catch(Exception e){Report("Agent history save failed: "+e.Message);}
+        try
+        {
+            Directory.CreateDirectory(AgentDirectory);memory.Transcript=transcript.Text;memory.WasWorking=session.Busy;
+            if(activeProjectId!=null && session.ThreadId!=null)memory.ProjectThreads[activeProjectId]=session.ThreadId;else if(activeProjectId==null)memory.ThreadId=session.ThreadId;
+            using(var file=new FileStream(MemoryPath+".tmp",FileMode.Create,FileAccess.Write,FileShare.None)){JsonSerializer.Serialize(file,memory);file.Flush(true);}
+            if(recoveredMemory)
+            {
+                if(File.Exists(MemoryPath))File.Copy(MemoryPath,MemoryPath+".corrupt-"+Guid.NewGuid().ToString("N"));
+                File.Move(MemoryPath+".tmp",MemoryPath,true);recoveredMemory=false;
+            }
+            else if(File.Exists(MemoryPath))File.Replace(MemoryPath+".tmp",MemoryPath,MemoryPath+".bak");else File.Move(MemoryPath+".tmp",MemoryPath);
+            dirty=false;
+        }catch(Exception e){Report("Agent history save failed: "+e.Message);}
     }
     private void Tick()
     {

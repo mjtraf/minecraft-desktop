@@ -23,6 +23,7 @@ internal static class SpeechInputTests
                 Check(new[]{"hello","write","document","weather"}.All(w=>text.Contains(w,StringComparison.OrdinalIgnoreCase)),"Parakeet transcribes the fixture accurately through the workstation review path");
                 results.Add($"Cold transcription: {watch.Elapsed.TotalSeconds:F2}s; text: {text}");
                 Check(ticks>2,"Model loading and inference keep the UI message loop responsive");
+                await ParakeetSpeech.Warm();Check(Path.IsPathFullyQualified(ParakeetSpeech.ModelDirectory()),"Startup preparation loads a model from an absolute path without Handy running");
                 messages.Clear();station.StartSpeech(Path.Combine(output,"missing.wav"));
                 Check(messages.Any(m=>m.Command=="villager-voice-error"),"Input failure produces a visible error instead of silent Ready status");
                 messages.Clear();station.StartSpeech(wav);station.CancelSpeech();await Task.Delay(500);

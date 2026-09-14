@@ -23,6 +23,7 @@ internal sealed partial class VillagerWorkstation
         try
         {
             _=ParakeetSpeech.ModelDirectory();
+            if(fixture==null)ParakeetSpeech.PrepareInBackground();
             var cancellation=speechCancellation=new CancellationTokenSource();
             lock(microphoneGate){microphoneSamples.Clear();micPeak=micLevel=0;}
             micStopped=null;micUpdate=DateTime.MinValue;listening=true;micStarted=DateTime.UtcNow;

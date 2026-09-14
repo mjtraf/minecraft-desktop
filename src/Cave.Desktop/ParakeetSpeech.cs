@@ -18,11 +18,22 @@ internal sealed class ParakeetSpeech : IDisposable
     private readonly int blank;
     internal static string ModelDirectory()
     {
-        string local=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"CozyCave","models","parakeet-tdt-0.6b-v3-int8");
-        string handy=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),"com.pais.handy","models","parakeet-tdt-0.6b-v3-int8");
+        string local=Path.Combine(AppStorage.Data,"models","parakeet-tdt-0.6b-v3-int8");
+        string handy=Path.Combine(AppStorage.RoamingRoot,"com.pais.handy","models","parakeet-tdt-0.6b-v3-int8");
         foreach(string path in new[]{local,handy})
             if(new[]{"encoder-model.int8.onnx","decoder_joint-model.int8.onnx","nemo128.onnx","vocab.txt"}.All(f=>File.Exists(Path.Combine(path,f))))return path;
-        throw new FileNotFoundException("Parakeet voice model is missing. Download Parakeet V3 in Handy, or run scripts/setup-voice.ps1, then try again.");
+        throw new FileNotFoundException("Parakeet model files were not found in "+local+" or "+handy+". Run scripts/setup-voice.ps1 to restore them.");
+    }
+    internal static void PrepareInBackground()=>_=Task.Run(async()=>
+    {
+        try{await Warm();Program.Log("Parakeet ready: "+ModelDirectory());}
+        catch(Exception e){Program.Log("Parakeet startup: "+e.Message);}
+    });
+    internal static async Task Warm()
+    {
+        await gate.WaitAsync().ConfigureAwait(false);
+        try{await Task.Run(()=>shared??=new ParakeetSpeech(ModelDirectory())).ConfigureAwait(false);}
+        finally{lastUsed=DateTime.UtcNow;gate.Release();}
     }
     private ParakeetSpeech(string directory)
     {
