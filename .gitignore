@@ -1,0 +1,29 @@
+.tools/
+.godot/
+**/bin/
+**/obj/
+artifacts/
+dist/
+*.user
+
+# Personal Minecraft assets and derived models are not distributed.
+Assets/Vanilla/
+# Generated Godot import sidecars (source .uid files remain versioned).
+*.import
+# Local state, credentials, captures, and editor configuration.
+.env
+.env.*
+!.env.example
+.vs/
+.vscode/
+*.log
+*.pfx
+*.pem
+*.key
+state.json*
+villager-agent.json*
+unsaved-session*.json
+# Historical personal design/validation journals are not public documentation.
+DESIGN.md
+PRODUCT.md
+VALIDATION.md

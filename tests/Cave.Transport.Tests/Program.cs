@@ -1,0 +1,20 @@
+using System.Diagnostics;
+using System.IO.Pipes;
+using System.Text.Json;
+using Cave.Transport;
+var name="cave-test-"+Guid.NewGuid();
+using var server=new NamedPipeServerStream(name,PipeDirection.Out,1,PipeTransmissionMode.Byte,PipeOptions.Asynchronous);
+using var client=new NamedPipeClientStream(".",name,PipeDirection.In,PipeOptions.Asynchronous);
+var accept=server.WaitForConnectionAsync();await client.ConnectAsync();await accept;
+using var sender=new PipeOutbox(server);
+var clock=Stopwatch.StartNew();
+for(int i=0;i<64;i++) sender.Send(new{index=i,padding=new string('x',65536)});
+if(clock.ElapsedMilliseconds>1000) throw new Exception("UI send blocked with an unread pipe");
+Console.WriteLine("PASS 4 MB queued without waiting for peer reads");
+using var reader=new StreamReader(client);
+for(int i=0;i<64;i++) {var line=await reader.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(5));using var json=JsonDocument.Parse(line!);if(json.RootElement.GetProperty("index").GetInt32()!=i) throw new Exception("Out-of-order messages");}
+Console.WriteLine("PASS All 64 messages delivered intact and in order");
+for(int i=0;i<16;i++) sender.Send(new{padding=new string('y',65536)});
+await Task.Delay(4000);
+if(server.IsConnected) throw new Exception("Unresponsive peer did not time out");
+Console.WriteLine("PASS Stalled peer disconnected after write timeout");

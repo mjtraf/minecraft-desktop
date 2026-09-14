@@ -1,0 +1,114 @@
+using Cave.Core;
+using System.Security.Cryptography;
+
+var root = Path.Combine(Path.GetTempPath(), "CaveTests-" + Guid.NewGuid().ToString("N"));
+Directory.CreateDirectory(root);
+int passed = 0;
+void Assert(bool ok, string message) { if (!ok) throw new Exception(message); Console.WriteLine("PASS " + message); passed++; }
+try
+{
+    Assert(YouTubeSource.Normalize("https://youtu.be/aqz-KE-bpKQ?t=12s")=="https://www.youtube.com/watch?v=aqz-KE-bpKQ&t=12s", "YouTube short links retain start time");
+    Assert(YouTubeSource.Normalize("https://www.youtube.com/shorts/aqz-KE-bpKQ")!=null && YouTubeSource.Normalize("https://www.youtube.com/watch?v=aqz-KE-bpKQ&v=ignored")!=null,"YouTube Shorts and repeated URL parameters are handled");
+    Assert(YouTubeSource.Normalize("javascript:alert(1)")==null && YouTubeSource.Normalize("https://youtube.com.evil.example/watch?v=aqz-KE-bpKQ")==null && YouTubeSource.Normalize("file:///secret")==null,"TV rejects scripts, local files and unrelated websites");
+    var remodel=CaveState.Create();
+    remodel.Chests[1].Carried=true;
+    var photo=new Decoration("item_frame",-2,1){PicturePath="C:/photos/家.jpg"};remodel.Decorations.Add(photo);
+    remodel.Links.Add(new FileLink {Path="C:/unchanged.txt",ChestId="projects"});
+    remodel.BuildingBlocks.Add(new BuildingBlock {Kind="stone",X=0,Y=1,Z=0});
+    remodel.BuildingBlocks.Add(new BuildingBlock {Kind="stone",X=20,Y=1,Z=0});
+    remodel.RemovedTerrain.Add("0,0.5,0");remodel.RemovedTerrain.Add("$valley:20,-1,0");
+    var chestIds=remodel.Chests.Select(c=>c.Id).ToArray();int stoneBefore=remodel.Supplies["stone"];
+    Assert(RoomRemodel.Apply(remodel),"Room remodel applies once");
+    Assert(chestIds.SequenceEqual(remodel.Chests.Select(c=>c.Id)) && remodel.Chests[1].Carried && remodel.Links.Single().ChestId=="projects" && remodel.Links.Single().Path=="C:/unchanged.txt","Remodel retains chest identities, carried chests and file assignments");
+    Assert(remodel.Decorations.Contains(photo) && photo.PicturePath=="C:/photos/家.jpg" && photo.TabletopFrame && photo.Y==1.02f,"Remodel retains photo identity and image path on the desk");
+    Assert(remodel.BuildingBlocks.Single().X==20 && remodel.Supplies["stone"]==stoneBefore+1 && remodel.RemovedTerrain.SetEquals(["$valley:20,-1,0"]),"Remodel returns indoor blocks to supplies and preserves outdoor construction and mining");
+    remodel.Chests[0].X=2;Assert(!RoomRemodel.Apply(remodel) && remodel.Chests[0].X==2,"Later launches preserve user layout changes");
+
+    Assert(new[]{0f,90f,180f,270f}.All(y=>PlacementFacing.Rotation("chest",y)==y),"Chest latch faces the player in all four directions");
+    Assert(new[]{0f,90f,180f,270f}.All(y=>PlacementFacing.Rotation("dark_oak_stairs",y)==(y+90)%360),"Stairs orient their rising side with the player's facing direction");
+    Assert(PlacementFacing.Rotation("chest",44)==0 && PlacementFacing.Rotation("chest",46)==90 && PlacementFacing.Rotation("chest",-90)==270,"Placement snaps and wraps cardinal directions");
+    Assert(PlacementFacing.Rotation("chest",90,90)==180,"Manual rotation adds a quarter turn to player facing");
+    var flow = new WaterFlow(); flow.Sources.Add(new(0,0,0));
+    var dam = new HashSet<WaterCell> {new(1,0,0)};
+    bool Solid(WaterCell c) => c.Y < 0 || c.Z != 0 || c.X < 0 || dam.Contains(c);
+    for(int tick=0;tick<10;tick++) flow.Step(Solid);
+    Assert(flow.Cells.Count==1, "Water is held back by a solid block");
+    dam.Clear();flow.Step(Solid);
+    Assert(flow.Cells.ContainsKey(new(1,0,0)), "Breaking the bank lets water enter the new space on the next tick");
+    for(int tick=0;tick<10;tick++) flow.Step(Solid);
+    Assert(flow.Cells.GetValueOrDefault(new(7,0,0),-1)==7 && !flow.Cells.ContainsKey(new(8,0,0)), "Water spreads seven blocks with diminishing levels");
+    dam.Add(new(1,0,0));for(int tick=0;tick<20;tick++) flow.Step(Solid);
+    Assert(flow.Cells.Count==1, "Replacing the dam drains disconnected water");
+    var falling=new WaterFlow();falling.Sources.Add(new(0,2,0));
+    for(int tick=0;tick<5;tick++) falling.Step(c=>c.Y<0);
+    Assert(falling.Cells.ContainsKey(new(0,0,0)) && !falling.Cells.ContainsKey(new(1,2,0)), "Water falls before spreading sideways");
+    var source = Path.Combine(root, "桌面"); Directory.CreateDirectory(source);
+    var item = Path.Combine(source, "hello world ü.txt"); File.WriteAllText(item, "never mutate this source");
+    var before = SHA256.HashData(File.ReadAllBytes(item));
+    var nested = Path.Combine(source, "folder"); Directory.CreateDirectory(nested);
+    for (int i = 0; i < 1200; i++) File.WriteAllText(Path.Combine(nested, $"item-{i:0000}.txt"), "fixture");
+    var state = CaveState.Create(); var library = new LinkLibrary(state);
+    Assert(library.ScanDesktop([source]) && state.Links.Count == 2, "Desktop inbox discovers files and folders");
+    Assert(!library.ScanDesktop([source]), "Desktop rescans do not duplicate items");
+    var link = state.Links.Single(l => l.Path == item);
+    library.Transfer(link.Id, "projects"); library.ScanDesktop([source]);
+    Assert(link.ChestId == "projects", "Rescanning preserves organization");
+    library.Transfer(link.Id, LinkLibrary.Inventory);
+    state.BuildingBlocks.Add(new BuildingBlock {Kind="dark_oak_stairs",X=2,Y=0,Z=2,Rotation=270});
+    state.Settings.PinnedApps.Add("test-editor.exe");
+    var store = new StateStore(Path.Combine(root, "save")); store.Save(state);
+    var protectedStore=new StateStore(Path.Combine(root,"protected-save"));protectedStore.Save(CaveState.Create());
+    using(var session=protectedStore.AcquireSession())
+    {bool rejected=false;try{using var duplicate=protectedStore.AcquireSession();}catch(IOException){rejected=true;}Assert(rejected,"Second renderer cannot acquire the same world session");}
+    using(var reopened=protectedStore.AcquireSession()){Assert(true,"World session lock releases for reopening");}
+    var staleStore=new StateStore(protectedStore.DirectoryPath);var staleState=staleStore.Load();
+    var latest=protectedStore.Load();latest.Notebook[0].Text="newer note";protectedStore.Save(latest);
+    staleState.Notebook[0].Text="older session edits";bool conflictRejected=false;try{staleStore.Save(staleState);}catch(IOException){conflictRejected=true;}
+    Assert(conflictRejected && new StateStore(protectedStore.DirectoryPath).Load().Notebook[0].Text=="newer note","Stale session cannot overwrite newer notebook/world state");
+    Assert(Directory.GetFiles(protectedStore.DirectoryPath,"unsaved-session-*.json").Length==1,"Conflicting session edits are preserved for recovery");
+    Assert(Directory.GetFiles(Path.Combine(protectedStore.DirectoryPath,"history"),"*.json").Length>0,"Reopening creates a timestamped world recovery snapshot");
+
+    Assert(store.Load().Settings.PinnedApps.SequenceEqual(new[]{"test-editor.exe"}),"Pinned app choices survive save and reload");
+    Assert(store.Load().BuildingBlocks.Single().Rotation==270, "Stair orientation survives save and reload");
+    Assert(store.Load().Links.Any(l => l.ChestId == LinkLibrary.Inventory), "Carry inventory persists across restarts");
+    library.Transfer(link.Id, "projects");
+    Assert(library.Add(item, "projects").Id == link.Id, "Duplicate link within a chest is deduplicated");
+    library.RemoveChest("projects"); Assert(link.ChestId == "inbox", "Removing a populated chest returns links to Inbox");
+    library.Remove(link.Id); library.ScanDesktop([source]);
+    Assert(!state.Links.Any(l => l.Path == item), "Removed desktop link is not resurrected by a rescan");
+    Assert(before.SequenceEqual(SHA256.HashData(File.ReadAllBytes(item))), "Link actions never change the original file");
+    Assert(new FileService().List(nested).Count == 1200, "Large folders enumerate without truncating data");
+    using var watcher = new FolderWatcher(); watcher.Watch([source]);
+    File.WriteAllText(Path.Combine(source, "new.txt"), "new");
+    Assert(SpinWait.SpinUntil(() => watcher.ConsumeChanges(), 4000), "Watcher notices incoming files");
+    library.ScanDesktop([source]); Assert(state.Links.Any(l => l.Name == "new.txt"), "New files appear in Inbox");
+    var missing = library.Add(Path.Combine(source, "unavailable.txt"), "inbox");
+    Assert(!new FileService().Exists(missing.Path), "Missing links remain representable");
+    store.Save(state); store.Save(state);
+    File.WriteAllText(Path.Combine(store.DirectoryPath, "state.json"), "broken JSON");
+    Assert(store.Load().Links.Count == state.Links.Count && store.RecoveryMessage != null, "Corrupt primary save recovers from backup");
+    store.Save(state); Assert(store.Load().Links.Count == state.Links.Count, "Recovered save remains writable");
+    var oldSave = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(store.DirectoryPath, "state.json")))!;
+    oldSave["Version"] = 1;
+    foreach (var field in new[] { "Supplies", "RemovedTerrain", "BuildingBlocks" }) oldSave.AsObject().Remove(field);
+    File.WriteAllText(Path.Combine(store.DirectoryPath, "state.json"), oldSave.ToJsonString());
+    var migrated = store.Load();
+    Assert(migrated.Version == 6 && migrated.Supplies["stone"] == 64 && migrated.BuildingBlocks.Count == 0 && migrated.Links.Count == state.Links.Count, "Version 1 save gains building supplies without changing file links");
+    migrated.Version = 2; migrated.Supplies["crate"] = 7; migrated.Supplies["plant"] = 3;
+    migrated.Decorations.Add(new Decoration("crate", 2, 3));
+    store.Save(migrated); var vanilla = store.Load();
+    Assert(!vanilla.Supplies.ContainsKey("crate") && !vanilla.Supplies.ContainsKey("plant") && vanilla.Decorations.Last().Kind == "barrel", "Legacy custom blocks migrate to vanilla block types");
+    vanilla.Drops.Add(new DroppedBlock { Kind="chest",ItemId="inbox",Position=[1,2,3] });
+    vanilla.Chests.Single(c=>c.Id=="inbox").Carried=true; vanilla.Hotbar[8]="inbox";
+    store.Save(vanilla); var reloaded=store.Load();
+    Assert(reloaded.Drops.Single().ItemId=="inbox" && reloaded.Hotbar[8]=="inbox" && reloaded.Chests.Single(c=>c.Id=="inbox").Carried, "Drops, chest identity, and hotbar survive restart together");
+    Console.WriteLine($"All {passed} checks passed.");
+}
+finally
+{
+    var resolved = Path.GetFullPath(root);
+    var tempRoot = Path.GetFullPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+    if (!resolved.StartsWith(tempRoot, StringComparison.OrdinalIgnoreCase) || !Path.GetFileName(resolved).StartsWith("CaveTests-"))
+        throw new InvalidOperationException("Refusing cleanup outside the test fixture directory.");
+    Directory.Delete(resolved, true);
+}
