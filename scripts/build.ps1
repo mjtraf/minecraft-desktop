@@ -32,6 +32,8 @@ try {
         Copy-Item -LiteralPath "$root/ASSETS.md" -Destination "$root/dist/CozyCave/ASSETS.md" -Force
         $licenseDir = "$root/dist/CozyCave/licenses"
         New-Item -ItemType Directory -Force $licenseDir | Out-Null
+        Copy-Item -LiteralPath "$root/docs/VOICE-LICENSES.txt" -Destination "$licenseDir/VOICE-LICENSES.txt" -Force
+        Copy-Item -LiteralPath "$env:USERPROFILE/.nuget/packages/microsoft.ml.onnxruntime/1.23.2/ThirdPartyNotices.txt" -Destination "$licenseDir/onnxruntime-ThirdPartyNotices.txt" -Force
         Copy-Item -LiteralPath "$root/Assets/Vanilla/SOURCE.json" -Destination "$licenseDir/Minecraft-asset-sources.json" -Force
         Copy-Item -LiteralPath "$root/Assets/Fonts/OFL.txt" -Destination "$licenseDir/Pixel-font-OFL.txt" -Force
         Copy-Item -LiteralPath "$env:DOTNET_ROOT/LICENSE.txt" -Destination "$licenseDir/dotnet-LICENSE.txt" -Force

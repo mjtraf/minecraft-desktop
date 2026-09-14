@@ -23,7 +23,7 @@ With a compatible resource pack in place:
 
 The packaged launcher is `dist/CozyCave/Cave.Desktop.exe`. The `scripts/` directory contains tool setup, build, launch, and procedural asset generation. Asset generation requires Python and Pillow.
 
-YouTube uses Microsoft Edge WebView2. Villager tasks require an installed, authenticated Codex CLI. Voice input requires a microphone and compatible Windows speech recognition engine.
+YouTube uses Microsoft Edge WebView2. Villager tasks require an installed, authenticated Codex CLI. Optional voice input uses a microphone and Parakeet V3 locally on the CPU. Run `./scripts/setup-voice.ps1` once, or download Parakeet V3 in Handy; Minecraft Desktop can reuse its model. Handy does not need to be running. No API key or paid transcription service is required. Model and decoder attribution are in [Voice licenses](VOICE-LICENSES.txt).
 
 ## Controls
 
@@ -55,7 +55,7 @@ Inside the workstation, click to select controls, type or paste text, drag to se
 
 Saves live in `%LOCALAPPDATA%/CozyCave/`. Internal identifiers and paths retain the original name for save compatibility. This directory includes file paths, notes, and agent transcripts and is not part of the repository.
 
-Voice is push-to-talk in the cave, not an always-listening wake word or a connection to an external voice chat. Say “Alex, research…” while holding V. The review shows the recipient and text; unrecognized names require choosing a villager. While holding V, the status shows microphone activity. Release V to process the recording and review the text, then choose Send task. Empty recordings and recognition failures show recovery options for sound settings, permissions, or typing. Microphone recognition quality depends on Windows and needs testing with your voice.
+Voice is push-to-talk in the cave. Say “Alex, research…” while holding V. The review shows the recipient and text; unrecognized names require choosing a villager. Release V to transcribe, review the text, then choose Send task. Audio stays in memory and is not saved or uploaded. Empty recordings and recognition failures offer sound settings, permissions, or typing. Recording uses the Windows default microphone and stops after 60 seconds. The shared model unloads after five idle minutes; the next request includes a short loading delay. Accuracy still depends on the microphone, background sound, and speech.
 
 ## Project studio
 

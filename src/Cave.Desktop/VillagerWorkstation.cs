@@ -1,4 +1,3 @@
-using System.Speech.Recognition;
 using System.Text;
 using System.Text.Json;
 namespace Cave.Desktop;
@@ -25,8 +24,6 @@ internal sealed partial class VillagerWorkstation:Form
     private readonly Label status=new() {Dock=DockStyle.Fill,Text="Ready · Full local access",ForeColor=Color.White,TextAlign=ContentAlignment.MiddleLeft};
     private readonly System.Windows.Forms.Timer timer=new() {Interval=250};
     private VillagerMemory memory=new();
-    private SpeechRecognitionEngine? speech;
-    private readonly StringBuilder spoken=new();
     private bool closing,suspended,listening,dirty;
     private int ticks;
     private DateTime micStarted;
@@ -181,7 +178,7 @@ internal sealed partial class VillagerWorkstation:Form
     }
     protected override void Dispose(bool disposing)
     {
-        if(disposing && !closing){closing=true;projectCompletion?.TrySetException(new IOException("Workstation closed."));promptResult?.TrySetResult(null);timer.Stop();CancelSpeech();speech?.Dispose();SaveMemory();session.Dispose();frames.Dispose();timer.Dispose();sessionLease.Dispose();}
+        if(disposing && !closing){closing=true;projectCompletion?.TrySetException(new IOException("Workstation closed."));promptResult?.TrySetResult(null);timer.Stop();CancelSpeech();SaveMemory();session.Dispose();frames.Dispose();timer.Dispose();sessionLease.Dispose();}
         base.Dispose(disposing);
     }
 }
