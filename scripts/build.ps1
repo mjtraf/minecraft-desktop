@@ -4,7 +4,7 @@ $root = Split-Path $PSScriptRoot -Parent
 Push-Location $root
 try {
     if (!(Test-Path "$root/Assets/Vanilla/SOURCE.json")) {
-        throw 'The portfolio source preview excludes the required personal resource pack. See ASSETS.md. Core tests can run separately without that pack.'
+        throw 'The renderer requires a compatible resource pack. See ASSETS.md. Core tests can run separately without it.'
     }
     & "$PSScriptRoot/bootstrap.ps1"
     $env:DOTNET_ROOT = Join-Path $root '.tools/dotnet'
