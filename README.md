@@ -1,6 +1,6 @@
 # Minecraft Desktop
 
-A walkable Windows desktop. Keep files in chests, watch YouTube on a wall-mounted TV, and give a villager a task while you work nearby.
+A Minecraft-inspired desktop that turns everyday computing into an interactive world. Organize files in chests, browse the web on an in-world TV, and put AI agents to work as villagers at their own computers.
 
 I wanted the desktop to feel like a room I could spend time in. This project brings everyday tools into a Minecraft-inspired cave, with a rainy view, a fireplace, and space to build.
 
@@ -8,7 +8,7 @@ I wanted the desktop to feel like a room I could spend time in. This project bri
 
 ## Inside the cave
 
-**Villager agents.** Give a villager a coding, research, or writing task through text or voice. It sits at its computer while a Codex session works. Open the monitor to read the output, respond to questions, or stop the task.
+**Villager agents.** Give a villager a coding, research, or writing task through text or voice. It sits at its computer while an AI agent works. Open the monitor to follow progress, respond to questions, or take control.
 
 ![A villager working at its computer](docs/media/villager.png)
 
