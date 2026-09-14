@@ -8,6 +8,7 @@ internal static class Program
 {
     [STAThread] static void Main(string[] args)
     {
+        if(args.Contains("--speech-input-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--speech-input-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();SpeechInputTests.Run(output);return;}
         if(args.Contains("--project-agent-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--project-agent-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();ProjectAgentTests.Run(output);return;}
         if(args.Contains("--agent-workstations-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--agent-workstations-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();AgentWorkstationTests.Run(output);return;}
         if(args.Contains("--workstation-input-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--workstation-input-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();WorkstationInputTests.Run(output);return;}

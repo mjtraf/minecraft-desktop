@@ -261,6 +261,16 @@ public partial class Main
         if((wasWorking && !a.Working)||(!wasNeeding && a.NeedsInput)){a.Wave=4;if(a.NotifyCooldown<=0){VillagerHmm(a);a.NotifyCooldown=10;}a.RouteDelay=0;}
         // Background progress never opens a panel or steals focus.
     }
+    private void ShowVoiceError(JsonElement p)
+    {
+        if(!voicePending || MessageAgent(p)!=voiceRecorder)return;
+        voiceHeld=false;voicePending=false;
+        var box=OpenPanel("Voice input");box.AddChild(new Label{Text=p.GetProperty("text").GetString()??"No speech captured.",AutowrapMode=TextServer.AutowrapMode.WordSmart,CustomMinimumSize=new Vector2(600,0)});
+        box.AddChild(Button("Type request instead",()=>{voicePending=true;ReviewVillagerVoice("");}));
+        box.AddChild(Button("Windows sound settings",()=>{ClosePanel();OpenDesktopSystem("sound");}));
+        box.AddChild(Button("Microphone permissions",()=>{ClosePanel();OpenDesktopSystem("microphone");}));
+        box.AddChild(Button("Close and try again",ClosePanelAndResume));
+    }
     private void ReviewVillagerVoice(string text)
     {
         if(!voicePending)return;voicePending=false;

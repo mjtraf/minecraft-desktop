@@ -295,6 +295,8 @@ public partial class Main : Node3D
                 case "villager-ready": ReceiveVillagerReady(p);break;
                 case "villager-profile": ReceiveVillagerProfile(p);break;
                 case "villager-status": ReceiveVillager(p);break;
+                case "villager-voice-progress": if(voicePending && MessageAgent(p)==voiceRecorder)Toast(p.GetProperty("text").GetString()??"");break;
+                case "villager-voice-error": ShowVoiceError(p);break;
                 case "villager-dictation": ReviewVillagerVoice(p.GetProperty("text").GetString()??"");break;
                 case "villager-return": LeaveTelevision();backgroundApp=false;StartWalking();break;
                 case "tv-ready": ConnectTv(p.GetProperty("channel").GetString()!);break;

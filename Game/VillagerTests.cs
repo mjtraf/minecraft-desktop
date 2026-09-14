@@ -68,6 +68,11 @@ public partial class Main
             _UnhandledInput(new InputEventMouseButton{ButtonIndex=MouseButton.Left,Pressed=true});
             Check(panel!=null && Descendants(panel).OfType<LineEdit>().Single().Text==robin.Profile.Name && !tvFocused,"Clicking a villager opens its name instead of the computer");
             ClosePanelAndResume();
+            voicePending=true;voiceHeld=true;voiceRecorder=robin.Profile.Id;voiceTarget=robin.Profile.Id;
+            ShowVoiceError(System.Text.Json.JsonSerializer.SerializeToElement(new{agentId=robin.Profile.Id,text="No microphone audio was detected."}));
+            Check(panel!=null && !voiceHeld && !voicePending && Descendants(panel).OfType<Button>().Any(b=>b.Text=="Windows sound settings"),"Voice failures show a recoverable microphone message instead of hanging");
+            Descendants(panel!).OfType<Button>().Single(b=>b.Text=="Type request instead").EmitSignal(Godot.Button.SignalName.Pressed);
+            Check(state.Agents[Descendants(panel!).OfType<OptionButton>().Single().Selected].Id==robin.Profile.Id,"Typing after microphone failure preserves the selected villager");ClosePanelAndResume();
             Changed();Check(!dirty && store.Load().WorkstationPosition.SequenceEqual(state.WorkstationPosition),"Workstation position persists in saved world");
             Check(GD.Load<AudioStream>("res://Assets/Vanilla/villager_idle1.ogg")!=null,"Original villager acknowledgement sound loads");
             System.IO.File.WriteAllLines(System.IO.Path.Combine(output,"results.txt"),results);

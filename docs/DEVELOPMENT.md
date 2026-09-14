@@ -55,7 +55,7 @@ Inside the workstation, click to select controls, type or paste text, drag to se
 
 Saves live in `%LOCALAPPDATA%/CozyCave/`. Internal identifiers and paths retain the original name for save compatibility. This directory includes file paths, notes, and agent transcripts and is not part of the repository.
 
-Voice is push-to-talk in the cave, not an always-listening wake word or a connection to an external voice chat. Say “Alex, research…” while holding V. The review shows the recipient and text; unrecognized names require choosing a villager. Microphone recognition quality depends on Windows and needs testing with your voice.
+Voice is push-to-talk in the cave, not an always-listening wake word or a connection to an external voice chat. Say “Alex, research…” while holding V. The review shows the recipient and text; unrecognized names require choosing a villager. While holding V, the status shows microphone activity. Release V to process the recording and review the text, then choose Send task. Empty recordings and recognition failures show recovery options for sound settings, permissions, or typing. Microphone recognition quality depends on Windows and needs testing with your voice.
 
 ## Project studio
 

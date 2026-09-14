@@ -164,30 +164,13 @@ internal sealed partial class VillagerWorkstation:Form
     }
     internal void OpenInWorld(){BeginInWorld();ReportProfile();if(!memory.Configured)_=ConfigureAgent();}
     internal void SetSuspended(bool value){suspended=value;if(value)CancelSpeech();}
-    internal void StartSpeech()
-    {
-        if(listening || suspended)return;
-        try
-        {
-            if(speech==null)
-            {
-                var recognizer=SpeechRecognitionEngine.InstalledRecognizers().FirstOrDefault(r=>r.Culture.TwoLetterISOLanguageName=="en")??SpeechRecognitionEngine.InstalledRecognizers().FirstOrDefault()??throw new InvalidOperationException("No Windows speech recognizer installed. Type at the workstation or install Windows speech recognition.");
-                speech=new SpeechRecognitionEngine(recognizer);speech.LoadGrammar(new DictationGrammar());
-                speech.SpeechRecognized+=(_,e)=>{if(e.Result.Confidence>=.35f)spoken.Append(e.Result.Text+" ");};
-                speech.RecognizeCompleted+=(_,_)=>{if(closing)return;BeginInvoke(()=>{bool deliver=listening;listening=false;speech.SetInputToNull();string text=spoken.ToString().Trim();if(deliver && text.Length>0){input.Text=text;send("villager-dictation",new {text});Report("Review your voice request");}else Report("Ready — no speech captured");});};
-            }
-            spoken.Clear();speech.SetInputToDefaultAudioDevice();listening=true;micStarted=DateTime.UtcNow;speech.RecognizeAsync(RecognizeMode.Multiple);Report("Listening — release V to review");
-        }catch(Exception e){listening=false;try{speech?.SetInputToNull();}catch{}Report("Microphone: "+e.Message);}
-    }
-    internal void StopSpeech(){if(listening)speech?.RecognizeAsyncStop();}
-    internal void CancelSpeech(){listening=false;try{speech?.RecognizeAsyncCancel();}catch{} }
     private void SaveMemory()
     {
         try{Directory.CreateDirectory(AgentDirectory);memory.Transcript=transcript.Text;if(activeProjectId!=null && session.ThreadId!=null)memory.ProjectThreads[activeProjectId]=session.ThreadId;else if(activeProjectId==null)memory.ThreadId=session.ThreadId;File.WriteAllText(MemoryPath+".tmp",JsonSerializer.Serialize(memory));if(File.Exists(MemoryPath))File.Replace(MemoryPath+".tmp",MemoryPath,MemoryPath+".bak");else File.Move(MemoryPath+".tmp",MemoryPath);dirty=false;}catch(Exception e){Report("Agent history save failed: "+e.Message);}
     }
     private void Tick()
     {
-        if(closing)return;if(listening && DateTime.UtcNow-micStarted>TimeSpan.FromSeconds(60))StopSpeech();
+        if(closing)return;UpdateSpeech();
         if(++ticks%30==0 && dirty)SaveMemory();if(suspended)return;
         try
         {
