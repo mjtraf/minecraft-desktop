@@ -17,14 +17,14 @@ public partial class Main
             await Frames(360);
             Check(tvTexture!=null && tvTexture.GetWidth()>500,"YouTube frames reach the Godot screen texture");
             player.Position=new Vector3(2,.05f,4);
-            void AimTv(){player.Rotation=new Vector3(0,Mathf.Pi,0);camera.LookAt(new Vector3(2,3,7.4f));pitch=camera.Rotation.X;}
+            void AimTv(){player.Rotation=new Vector3(0,Mathf.Pi,0);camera.LookAt(screenSurfaces.First(s=>s.Role=="tv").Node.GlobalPosition);pitch=camera.Rotation.X;}
             AimTv();
             await Frames(6);StartWalking();await Frames(4);
-            Check(hovered=="$tv","Desk TV can be targeted from the clear aisle");
+            Check(SurfaceFor(hovered)?.Role=="tv","Desk TV can be targeted from the clear aisle");
             int frameStart=tvPresentedFrames;var clock=System.Diagnostics.Stopwatch.StartNew();await Frames(300);
             results.Add($"Displayed TV FPS: {(tvPresentedFrames-frameStart)/clock.Elapsed.TotalSeconds:F1}; cave FPS: {Engine.GetFramesPerSecond()}");
             AimTv();
-            _UnhandledInput(new InputEventMouseButton{ButtonIndex=MouseButton.Left,Pressed=true});await Frames(100);
+            mouseActionsReady=true;_UnhandledInput(new InputEventMouseButton{ButtonIndex=MouseButton.Left,Pressed=true});_Input(new InputEventMouseButton{ButtonIndex=MouseButton.Left,Pressed=false});await Frames(100);
             Check(tvFocused && !walking && panel==null,"Clicking TV enters direct screen browsing without another panel");
             Check(camera.Fov<tvPreviousFov && TryTvAim(out _),"TV focus zooms the physical screen and keeps cursor targeting valid");
             GetViewport().GetTexture().GetImage().SavePng(System.IO.Path.Combine(output,"tv-focused.png"));
@@ -35,7 +35,7 @@ public partial class Main
             AimTv();await Frames(2);
             layer.Visible=false;await Frames(3);GetViewport().GetTexture().GetImage().SavePng(System.IO.Path.Combine(output,"tv-in-cave.png"));layer.Visible=true;
             AimTv();await Frames(2);
-            _UnhandledInput(new InputEventMouseButton{ButtonIndex=MouseButton.Right,Pressed=true,ShiftPressed=true});await Frames(6);
+            activeScreen=screenSurfaces.First(s=>s.Role=="tv");FocusTelevision();HandleTvInput(new InputEventMouseButton{ButtonIndex=MouseButton.Right,Pressed=true,ShiftPressed=true});await Frames(6);
             Check(panel!=null && Descendants(panel).OfType<Button>().Any(b=>b.Name=="TvPower"),"Shift-right-click opens optional TV settings");
             GetViewport().GetTexture().GetImage().SavePng(System.IO.Path.Combine(output,"tv-remote.png"));
             var mute=Descendants(panel!).OfType<Button>().Single(b=>b.Name=="TvMute");bool beforeMute=state.Settings.TvMuted;mute.EmitSignal(Godot.Button.SignalName.Pressed);await Frames(4);

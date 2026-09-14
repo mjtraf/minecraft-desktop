@@ -8,6 +8,7 @@ internal static class Program
 {
     [STAThread] static void Main(string[] args)
     {
+        if(args.Contains("--workstation-input-test")){var output=Path.GetFullPath(args[Array.IndexOf(args,"--workstation-input-test")+1]);testData=Path.Combine(output,"profile");ApplicationConfiguration.Initialize();WorkstationInputTests.Run(output);return;}
         if(args.Contains("--agent-desktop")) {ApplicationConfiguration.Initialize();AgentDesktop.Run(args[Array.IndexOf(args,"--agent-desktop")+1]);return;}
         if(args.Contains("--villager-test")) {testData=Path.GetFullPath(args[Array.IndexOf(args,"--villager-test")+1]);ApplicationConfiguration.Initialize();VillagerTests.Run(testData);return;}
         if(args.Contains("--search-test")) {ApplicationConfiguration.Initialize();SearchTests.Run(args[Array.IndexOf(args,"--search-test")+1]);return;}
@@ -126,6 +127,7 @@ internal sealed class DesktopContext : ApplicationContext
             foreach (var flag in new[] { "--capture", "--test-data", "--tv-smoke" })
                 if (GetArg(flag) is { } value) { psi.ArgumentList.Add(flag); psi.ArgumentList.Add(value); }
             if(GetArg("--villager-scene-test") is {} villagerTest){psi.ArgumentList.Add("--villager-test");psi.ArgumentList.Add(villagerTest);}
+            if(GetArg("--screen-scene-test") is {} screenTest){psi.ArgumentList.Add("--screen-test");psi.ArgumentList.Add(screenTest);}
             renderer = Process.Start(psi)!;
             Program.Log("Renderer started pid=" + renderer.Id);
             var watch = new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden };
@@ -274,9 +276,11 @@ internal sealed class DesktopContext : ApplicationContext
                 try {
                 villagerWorkstation??=new VillagerWorkstation(Send,()=>{Send("villager-return",null);Enter();});
                 Send("villager-ready",new{channel=villagerWorkstation.Channel});
-                switch(message.GetProperty("action").GetString()){case "open":Background();villagerWorkstation.OpenMonitor();break;case "send":_ = villagerWorkstation.Submit(message.GetProperty("text").GetString()??"");break;case "mic-start":villagerWorkstation.StartSpeech();break;case "mic-stop":villagerWorkstation.StopSpeech();break;case "mic-cancel":villagerWorkstation.CancelSpeech();break;}
+                switch(message.GetProperty("action").GetString()){case "open":villagerWorkstation.BeginInWorld();break;case "leave":villagerWorkstation.EndInWorld();break;case "send":_ = villagerWorkstation.Submit(message.GetProperty("text").GetString()??"");break;case "mic-start":villagerWorkstation.StartSpeech();break;case "mic-stop":villagerWorkstation.StopSpeech();break;case "mic-cancel":villagerWorkstation.CancelSpeech();break;}
                 }catch(Exception e){Send("villager-status",new{text="Workstation unavailable: "+e.Message,working=false,listening=false});}
                 break;
+            case "workstation-pointer": villagerWorkstation?.RemotePointer(message.GetProperty("u").GetDouble(),message.GetProperty("v").GetDouble(),message.TryGetProperty("phase",out var workstationPhase)?workstationPhase.GetString()??"":"");break;
+            case "workstation-input": villagerWorkstation?.RemoteInput(message);break;
             case "tv-pointer": if(television!=null)_ = television.Pointer(message.GetProperty("u").GetDouble(),message.GetProperty("v").GetDouble(),message.GetProperty("click").GetBoolean(),message.TryGetProperty("phase",out var phase)?phase.GetString()??"":"");break;
             case "tv-input": if(television!=null)_ = television.Input(message.Clone());break;
             case "tv": if(message.GetProperty("action").GetString()=="browse")Background();television??=new CaveTv(Send);Send("tv-ready",new{channel=television.Channel});_ = television.Handle(message);break;

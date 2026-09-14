@@ -7,6 +7,21 @@ int passed = 0;
 void Assert(bool ok, string message) { if (!ok) throw new Exception(message); Console.WriteLine("PASS " + message); passed++; }
 try
 {
+    var screenA=new Decoration("black_concrete",0,0){ScreenRole="tv"};
+    var screenB=new Decoration("black_concrete",1,0){ScreenRole="tv"};
+    Assert(ScreenLayout.Groups([screenA,screenB]).Single().Count==2,"Adjacent TV blocks form one screen");
+    screenB.Carried=true;
+    Assert(ScreenLayout.Groups([screenA,screenB]).Single().Count==1,"Removing a screen block shrinks the display");
+    screenB.Carried=false;screenB.ScreenRole="desktop";
+    Assert(ScreenLayout.Groups([screenA,screenB]).Count==2,"TV and computer sources never merge");
+    screenB.ScreenRole="tv";screenA.Rotation=screenB.Rotation=90;screenB.X=0;screenB.Z=1;
+    Assert(ScreenLayout.Groups([screenA,screenB]).Single().Count==2,"Rotated screens merge along their local horizontal axis");
+    screenB.Rotation=180;
+    Assert(ScreenLayout.Groups([screenA,screenB]).Count==2,"Opposite-facing screens remain separate");
+    var screenState=CaveState.Create();screenState.Decorations.Add(screenA);screenState.ScreenBlocksCreated=true;
+    var screenStore=new StateStore(Path.Combine(root,"screen-state"));screenStore.Save(screenState);
+    var screenReload=screenStore.Load();
+    Assert(screenReload.ScreenBlocksCreated && screenReload.Decorations.Any(d=>d.Id==screenA.Id && d.ScreenRole=="tv" && d.Rotation==90),"Screen source, identity and rotation survive restart");
     Assert(YouTubeSource.Normalize("https://youtu.be/aqz-KE-bpKQ?t=12s")=="https://www.youtube.com/watch?v=aqz-KE-bpKQ&t=12s", "YouTube short links retain start time");
     Assert(YouTubeSource.Normalize("https://www.youtube.com/shorts/aqz-KE-bpKQ")!=null && YouTubeSource.Normalize("https://www.youtube.com/watch?v=aqz-KE-bpKQ&v=ignored")!=null,"YouTube Shorts and repeated URL parameters are handled");
     Assert(YouTubeSource.Normalize("javascript:alert(1)")==null && YouTubeSource.Normalize("https://youtube.com.evil.example/watch?v=aqz-KE-bpKQ")==null && YouTubeSource.Normalize("file:///secret")==null,"TV rejects scripts, local files and unrelated websites");
@@ -93,7 +108,7 @@ try
     foreach (var field in new[] { "Supplies", "RemovedTerrain", "BuildingBlocks" }) oldSave.AsObject().Remove(field);
     File.WriteAllText(Path.Combine(store.DirectoryPath, "state.json"), oldSave.ToJsonString());
     var migrated = store.Load();
-    Assert(migrated.Version == 6 && migrated.Supplies["stone"] == 64 && migrated.BuildingBlocks.Count == 0 && migrated.Links.Count == state.Links.Count, "Version 1 save gains building supplies without changing file links");
+    Assert(migrated.Version == 7 && migrated.Supplies["stone"] == 64 && migrated.BuildingBlocks.Count == 0 && migrated.Links.Count == state.Links.Count, "Version 1 save gains building supplies without changing file links");
     migrated.Version = 2; migrated.Supplies["crate"] = 7; migrated.Supplies["plant"] = 3;
     migrated.Decorations.Add(new Decoration("crate", 2, 3));
     store.Save(migrated); var vanilla = store.Load();

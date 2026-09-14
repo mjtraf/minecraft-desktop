@@ -82,6 +82,7 @@ public partial class Main
         }
         if (movingId == null) state.Supplies[kind]--;
         bool repeat = movingId == null && state.Supplies.GetValueOrDefault(kind) > 0;
+        if(movingId!=null && state.Decorations.Any(d=>d.Id==movingId && d.ScreenRole!=null))RebuildScreenSurfaces();
         Changed(); CancelPlacement(); PlayEffect("place"); RefreshHotbar(); SwingHand();
         if (repeat) {float turn=placementTurn;BeginPlacement(kind, null);placementTurn=turn;}
     }

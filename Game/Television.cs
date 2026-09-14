@@ -17,24 +17,29 @@ public partial class Main
     private bool tvAiming;
     private bool tvFocused;
     private float tvPreviousFov;
-    private Vector3 tvPreviousRotation;
+    private Vector3 tvPreviousRotation,tvPreviousPosition;
     private void LeaveTelevision()
     {
         if(!tvFocused)return;
-        bridge.Send(new{command="tv-pointer",u=tvLastAim.X,v=tvLastAim.Y,click=false,phase="up"});
-        tvFocused=false;camera.Fov=tvPreviousFov;camera.Rotation=tvPreviousRotation;
+        CancelScreenPointer();
+        if(activeScreen?.Role=="desktop")bridge.Send(new{command="villager",action="leave"});
+        tvFocused=false;camera.Fov=tvPreviousFov;camera.Rotation=tvPreviousRotation;camera.Position=tvPreviousPosition;
     }
     private void FocusTelevision()
     {
         if(tvFocused)return;
-        tvPreviousFov=camera.Fov;tvPreviousRotation=camera.Rotation;
-        camera.LookAt(new Vector3(2,3,7.47f));
-        float distance=camera.GlobalPosition.DistanceTo(new Vector3(2,3,7.47f));
-        camera.Fov=Mathf.Clamp(Mathf.RadToDeg(2*Mathf.Atan(1.3f/distance)),25,65);
+        tvPreviousFov=camera.Fov;tvPreviousRotation=camera.Rotation;tvPreviousPosition=camera.Position;
+        activeScreen ??= SurfaceFor(hovered) ?? screenSurfaces.FirstOrDefault(s=>s.Role=="tv");
+        if(activeScreen==null)return;
+        camera.GlobalPosition=activeScreen.Node.ToGlobal(new Vector3(0,0,-Mathf.Clamp(activeScreen.Size.Y*1.2f,1.2f,4)));
+        camera.LookAt(activeScreen.Node.GlobalPosition);
+        float distance=camera.GlobalPosition.DistanceTo(activeScreen.Node.GlobalPosition);
+        camera.Fov=Mathf.Clamp(Mathf.RadToDeg(2*Mathf.Atan(activeScreen.Size.Y*.7f/Math.Max(.1f,distance))),10,80);
         tvFocused=true;walking=false;Input.MouseMode=Input.MouseModeEnum.Visible;
         Input.WarpMouse(GetViewport().GetVisibleRect().Size/2);
-        if(!tvOn){tvOn=true;TvCommand("power");}
-        Toast("TV: click, type, scroll or drag. Esc: walk. Middle-click: power. Shift + right-click: settings.");
+        if(activeScreen.Role=="desktop")bridge.Send(new{command="villager",action="open"});
+        else if(!tvOn){tvOn=true;TvCommand("power");}
+        Toast(activeScreen.Role=="desktop"?"Computer: click, type, select and scroll. Esc: walk.":"TV: click, type, scroll or drag. Esc: walk. Middle-click: power. Shift + right-click: settings.");
     }
     private bool HandleTvInput(InputEvent e)
     {
@@ -56,39 +61,36 @@ public partial class Main
                 int modifiers=(key.AltPressed?1:0)|(key.CtrlPressed?2:0)|(key.MetaPressed?4:0)|(key.ShiftPressed?8:0);
                 string text=key.Pressed && !key.CtrlPressed && !key.AltPressed && !key.MetaPressed && key.Unicode>=32?char.ConvertFromUtf32((int)key.Unicode):"";
                 if(key.Pressed && key.CtrlPressed && key.Keycode==Key.V)
-                    bridge.Send(new{command="tv-input",kind="text",text=DisplayServer.ClipboardGet()});
-                else bridge.Send(new{command="tv-input",kind="key",code,modifiers,text,pressed=key.Pressed});
+                    bridge.Send(new{command=ScreenInputCommand,kind="text",text=DisplayServer.ClipboardGet()});
+                else bridge.Send(new{command=ScreenInputCommand,kind="key",code,modifiers,text,pressed=key.Pressed});
             }
         }
         else if(e is InputEventMouseButton mouse)
         {
-            if(mouse.Pressed && mouse.ButtonIndex==MouseButton.Right && mouse.ShiftPressed){LeaveTelevision();ShowTelevision();}
+            if(activeScreen?.Role=="tv" && mouse.Pressed && mouse.ButtonIndex==MouseButton.Right && mouse.ShiftPressed){LeaveTelevision();ShowTelevision();}
             else if(!mouse.Pressed && mouse.ButtonIndex==MouseButton.Left)
-                bridge.Send(new{command="tv-pointer",u=tvLastAim.X,v=tvLastAim.Y,click=false,phase="up"});
+                bridge.Send(new{command=ScreenPointerCommand,u=tvLastAim.X,v=tvLastAim.Y,click=false,phase="up"});
             else if(mouse.Pressed && TryTvAim(out var uv))
             {
-                if(mouse.ButtonIndex==MouseButton.Middle){tvOn=!tvOn;TvCommand("power");}
-                if(mouse.ButtonIndex==MouseButton.Left)bridge.Send(new{command="tv-pointer",u=uv.X,v=uv.Y,click=false,phase="down"});
+                tvLastAim=uv;
+                if(activeScreen?.Role=="tv" && mouse.ButtonIndex==MouseButton.Middle){tvOn=!tvOn;TvCommand("power");}
+                if(mouse.ButtonIndex==MouseButton.Left)bridge.Send(new{command=ScreenPointerCommand,u=uv.X,v=uv.Y,click=false,phase="down"});
                 if(mouse.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown)
-                    bridge.Send(new{command="tv-input",kind="wheel",u=uv.X,v=uv.Y,delta=mouse.ButtonIndex==MouseButton.WheelUp?-160:160});
+                    bridge.Send(new{command=ScreenInputCommand,kind="wheel",u=uv.X,v=uv.Y,delta=mouse.ButtonIndex==MouseButton.WheelUp?-160:160});
             }
         }
         GetViewport().SetInputAsHandled();return true;
     }
+    private void CancelScreenPointer()=>bridge.Send(new{command=ScreenPointerCommand,u=-.05f,v=-.05f,click=false,phase=activeScreen?.Role=="desktop"?"cancel":"up"});
+    private string ScreenPointerCommand=>activeScreen?.Role=="desktop" && tvFocused?"workstation-pointer":"tv-pointer";
+    private string ScreenInputCommand=>activeScreen?.Role=="desktop" && tvFocused?"workstation-input":"tv-input";
     private Vector2 tvLastAim=new(-1,-1);
     private int tvPresentedFrames;
     private void BuildTelevision()
     {
-        // Ordinary dark-oak blocks surround a 16:9 screen above the existing desk.
-        for(int x=0;x<=4;x++) for(int y=1;y<=4;y++)
-            if(x==0 || x==4 || y==1 || y==4) Furnish("dark_oak_planks",x,y,8);
-        var node=new Node3D{Name="DeskTelevision"};world.AddChild(node);
-        Box(node,new Vector3(2,3,7.52f),new Vector3(3,2,.08f),Material("0c0e11"));
-        tvMaterial=new StandardMaterial3D {AlbedoColor=tvOn?Colors.White:new Color("0c0e11"),AlbedoTexture=tvOn?tvTexture:null,ShadingMode=BaseMaterial3D.ShadingModeEnum.Unshaded,CullMode=BaseMaterial3D.CullModeEnum.Disabled};
-        node.AddChild(new MeshInstance3D{Name="VideoScreen",Position=new Vector3(2,3,7.47f),RotationDegrees=new Vector3(0,180,0),Mesh=new QuadMesh{Size=new Vector2(3,1.6875f)},MaterialOverride=tvMaterial});
-        Collider(node,new Vector3(2,3,7.44f),new Vector3(5,4,.04f),"$tv");
-        tvOffLabel=new Label3D {Text="TV\nClick to turn on",Position=new Vector3(2,3,7.40f),RotationDegrees=new Vector3(0,180,0),Font=MinecraftWorldFont(),TextureFilter=BaseMaterial3D.TextureFilterEnum.Nearest,FontSize=30,PixelSize=.006f,Modulate=new Color("c4b792"),OutlineSize=0,Visible=!tvOn};node.AddChild(tvOffLabel);
+        CreateInitialTvBlocks();
     }
+
     private void TvCommand(string action)
     {
         if(!bridge.Connected && !selfTesting){tvStatus="TV needs the Minecraft Desktop desktop launcher. Restart using Minecraft Desktop in Start.";RefreshTvControls();return;}
@@ -125,6 +127,7 @@ public partial class Main
     }
     private void RefreshTvControls()
     {
+        RefreshScreenLabels();
         if(GodotObject.IsInstanceValid(tvStatusLabel))tvStatusLabel!.Text=tvStatus;
         if(GodotObject.IsInstanceValid(tvPowerButton))tvPowerButton!.Text=tvOn?"Turn off":"Turn on";
         if(GodotObject.IsInstanceValid(tvPauseButton)){tvPauseButton!.Text=tvPaused?"Play":"Pause";tvPauseButton.Disabled=!tvOn;}
@@ -150,31 +153,26 @@ public partial class Main
     private bool TryTvAim(out Vector2 uv)
     {
         uv=default;if(panel!=null || (!walking && !tvFocused))return false;
-        var origin=camera.GlobalPosition;var direction=tvFocused?camera.ProjectRayNormal(GetViewport().GetMousePosition()):-camera.GlobalBasis.Z;
-        if(direction.Z<=.0001f)return false;
-        float distance=(7.47f-origin.Z)/direction.Z;if(distance<0 || distance>6f)return false;
-        var query=PhysicsRayQueryParameters3D.Create(origin,origin+direction*6f);query.Exclude=new Godot.Collections.Array<Rid>{player.GetRid()};
-        if(RayItem(GetWorld3D().DirectSpaceState.IntersectRay(query))!="$tv")return false;
-        var at=origin+direction*distance;
-        uv=new Vector2((3.5f-at.X)/3,(3.84375f-at.Y)/1.6875f);
-        return uv.X>=0 && uv.X<=1 && uv.Y>=0 && uv.Y<=1;
+        var surface=tvFocused?activeScreen:SurfaceFor(hovered);
+        return surface!=null && (surface.Role=="tv" || tvFocused) && TryScreenAim(surface,out uv);
     }
+
     private bool ClickTelevision()
     {
         if(!TryTvAim(out var uv))return false;
         bool wasOn=tvOn;FocusTelevision();
-        if(wasOn)bridge.Send(new{command="tv-pointer",u=uv.X,v=uv.Y,click=true});return true;
+        if(wasOn)bridge.Send(new{command=ScreenPointerCommand,u=uv.X,v=uv.Y,click=true});return true;
     }
     private void UpdateTvAim(float delta)
     {
         tvAimTime+=delta;
-        Vector2 uv=default;bool aiming=tvOn && TryTvAim(out uv);
+        Vector2 uv=default;bool aiming=(tvOn || (tvFocused && activeScreen?.Role=="desktop")) && TryTvAim(out uv);
         if(aiming)
         {
             if(tvAimTime>=1f/30 && (!tvAiming || uv.DistanceSquaredTo(tvLastAim)>.000001f || tvAimTime>.5f))
-            {bridge.Send(new{command="tv-pointer",u=uv.X,v=uv.Y,click=false});tvLastAim=uv;tvAimTime=0;}
+            {bridge.Send(new{command=ScreenPointerCommand,u=uv.X,v=uv.Y,click=false});tvLastAim=uv;tvAimTime=0;}
         }
-        else if(tvAiming)bridge.Send(new{command="tv-pointer",u=-.05f,v=-.05f,click=false});
+        else if(tvAiming)bridge.Send(new{command=ScreenPointerCommand,u=-.05f,v=-.05f,click=false});
         tvAiming=aiming;
     }
     private void UpdateTelevision(float delta)

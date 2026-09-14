@@ -12,7 +12,7 @@ Godot renders the world. A C# Windows helper connects it to files, applications,
 
 ## Villager agent
 
-A villager represents a persistent Codex session. You can type a task or hold V while aiming at the villager to dictate, then review the text before sending. While the agent works, the villager sits at its computer. Open that computer for the full transcript and controls.
+A villager represents a persistent Codex session. You can type a task or hold V while aiming at the villager to dictate, then review the text before sending. While the agent works, the villager sits at its computer. Click the computer to zoom in and operate the same transcript and controls inside the world.
 
 The [session client](../src/Cave.Desktop/VillagerSession.cs) communicates with `codex app-server` over JSON-RPC on standard input/output. It resumes threads, streams responses, tracks task status, and interrupts turns. The [workstation](../src/Cave.Desktop/VillagerWorkstation.cs) handles input, approval requests, speech recognition, and transcript persistence.
 
@@ -45,6 +45,6 @@ The [state store](../src/Cave.Core/StateStore.cs) writes versioned records atomi
 
 ## Tests and current limits
 
-[GitHub Actions](https://github.com/mjtraf/minecraft-desktop/actions) runs 41 core checks and three transport checks on Windows. These cover source-file integrity, discovery, duplicate links, save recovery, placement, water flow, message ordering, and stalled peers.
+[GitHub Actions](https://github.com/mjtraf/minecraft-desktop/actions) runs 47 core checks and three transport checks on Windows. These cover source-file integrity, discovery, duplicate links, save recovery, placement, water flow, message ordering, and stalled peers.
 
 Additional in-app checks require the resource pack and an interactive desktop. Desktop attachment, microphone input, recording, and multi-monitor behavior need broader testing across PCs. Block interactions cover a subset of Minecraft behavior.

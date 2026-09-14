@@ -40,6 +40,12 @@ YouTube uses Microsoft Edge WebView2. Villager tasks require an installed, authe
 | Release walking capture | Hold Escape |
 | Dictate to a nearby targeted villager | Hold V |
 
+## Screens
+
+The workbench provides TV and computer variants of black concrete. A short click zooms into the display; holding left-click while walking mines the block. Escape leaves screen interaction. Adjacent blocks with the same source and facing join into a larger screen. TV blocks share one player; computer blocks share one workstation session. Breaking a computer does not interrupt its agent task.
+
+Inside the workstation, click to select controls, type or paste text, drag to select, and scroll the transcript. Project paths and agent questions open within the same screen. Sign-in and Open folder intentionally use their normal Windows applications.
+
 ## Local state
 
 Saves live in `%LOCALAPPDATA%/CozyCave/`. Internal identifiers and paths retain the original name for save compatibility. This directory includes file paths, notes, and agent transcripts and is not part of the repository.

@@ -87,6 +87,7 @@ public partial class Main
         FlushBlocks();
         foreach (var chest in (proof ? state.Chests.Take(1) : state.Chests).Where(c => !c.Carried)) CreateChest(chest);
         foreach (var b in state.BuildingBlocks) CreateBuildingBlock(b);
+        if(!proof)RebuildScreenSurfaces();
         InitializeWater();
     }
     private void RemovePlacedObject(string id)

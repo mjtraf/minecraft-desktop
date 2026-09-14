@@ -8,11 +8,11 @@ I wanted the desktop to feel like a room I could spend time in. This project bri
 
 ## Inside the cave
 
-**Villager agents.** Give a villager a coding, research, or writing task through text or voice. It sits at its computer while an AI agent works. Open the monitor to follow progress, respond to questions, or take control.
+**Villager agents.** Give a villager a coding, research, or writing task through text or voice. It sits at its computer while an AI agent works. Click the monitor to zoom in and control the same workstation directly in the world. Escape returns to walking.
 
 ![A villager working at its computer](docs/media/villager.png)
 
-**Interactive web TV.** The screen runs a live WebView2 browser. Aim and click to pause a video, type a search, or scroll through YouTube without leaving the room.
+**Interactive web TV.** The screen runs a live WebView2 browser. Aim and click to pause a video, type a search, or scroll through YouTube without leaving the room. TV and computer screens are movable black concrete blocks: hold to break and collect, then place matching blocks together for a larger display.
 
 **Files you can organize.** Chests hold links to real files and folders, with Windows icons, thumbnails, and folder navigation. Carry links between chests or move an entire chest with its contents intact. The original files stay where they are.
 

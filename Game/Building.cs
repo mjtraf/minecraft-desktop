@@ -40,7 +40,7 @@ public partial class Main
         if(target.Kind=="jukebox") {music.Stop();playingPath=null;state.Settings.MusicEnabled=false;}
         string? itemId=null;
         if (state.Chests.FirstOrDefault(c => c.Id == id && !c.Carried) is { } chest) { chest.Carried = true; itemId=chest.Id; }
-        else if (state.Decorations.FirstOrDefault(d => "$decor:" + d.Id == id && !d.Carried) is { } decor) { decor.Carried = true; itemId=decor.Id; }
+        else if (state.Decorations.FirstOrDefault(d => "$decor:" + d.Id == id && !d.Carried) is { } decor) { decor.Carried = true; itemId=decor.Id; if(decor.ScreenRole=="tv" && !state.Decorations.Any(d=>d.ScreenRole=="tv" && !d.Carried)){tvOn=false;TvCommand("power");} }
         else if (state.BuildingBlocks.FirstOrDefault(b => "$block:" + b.Id == id) is { } block) state.BuildingBlocks.Remove(block);
         else if (id.StartsWith("$terrain:")) state.RemovedTerrain.Add(id[9..]);
         else return;
@@ -55,7 +55,7 @@ public partial class Main
         foreach(var p in state.Supplies.Where(p=>p.Value>0 && BlockNames.ContainsKey(p.Key)))
             for(int left=p.Value;left>0;left-=64) items.Add((p.Key,null,BlockName(p.Key),Math.Min(left,64)));
         items.AddRange(state.Chests.Where(c => c.Carried && !ChestStorage.IsStored(state,c.Id) && !state.Drops.Any(d => d.ItemId == c.Id)).Select(c => ("chest", (string?)c.Id, c.Name + " · " + state.Links.Count(l => l.ChestId == c.Id) + " file links", 1)));
-        items.AddRange(state.Decorations.Where(d => d.Carried && !ChestStorage.IsStored(state,d.Id) && !state.Drops.Any(drop => drop.ItemId == d.Id)).Select(d => (d.Kind, (string?)d.Id, d.Kind=="item_frame" && d.PicturePath!=null?System.IO.Path.GetFileName(d.PicturePath)+" (photo frame)":d.Kind + " (picked up)", 1)));
+        items.AddRange(state.Decorations.Where(d => d.Carried && !ChestStorage.IsStored(state,d.Id) && !state.Drops.Any(drop => drop.ItemId == d.Id)).Select(d => (d.Kind, (string?)d.Id, d.ScreenRole!=null?(d.ScreenRole=="tv"?"TV":"Computer")+" (Black Concrete)":d.Kind=="item_frame" && d.PicturePath!=null?System.IO.Path.GetFileName(d.PicturePath)+" (photo frame)":d.Kind + " (picked up)", 1)));
         return items;
     }
     private void FillBuildingSlots(IReadOnlyList<ChestSlot> slots,Action? refresh=null)

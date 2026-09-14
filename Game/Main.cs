@@ -22,7 +22,7 @@ public partial class Main : Node3D
     private bool walking, paused, hidden, locked, proof, selfTesting;
     private bool manualDesktopRelease;
     private bool mouseActionsReady, miningHeld;
-    private void ResetMouseActions(){mouseActionsReady=false;miningHeld=false;breakTime=0;breakingId=null;ClearCracks();swingTime=0;}
+    private void ResetMouseActions(){screenPress=null;mouseActionsReady=false;miningHeld=false;breakTime=0;breakingId=null;ClearCracks();swingTime=0;}
     private void PollMouseActions(bool left,bool right) {if(!left)miningHeld=false;if(!left && !right)mouseActionsReady=true;}
     private float pitch, scanTime, saveTime, stepTime, bobTime;
     private string status = "Click to enter • WASD to walk • Right-click a chest • Hold Escape returns to Windows";
@@ -36,7 +36,7 @@ public partial class Main : Node3D
     public override void _Ready()
     {
         DisplayServer.WindowSetTitle("Minecraft Desktop");
-        var args = OS.GetCmdlineUserArgs(); proof = args.Contains("--proof"); selfTesting=args.Contains("--villager-test") || args.Contains("--chest-test") || args.Contains("--save-reopen") || args.Contains("--save-audit") || args.Contains("--world-test") || args.Contains("--dock-ui-test") || args.Contains("--self-test") || args.Contains("--tv-smoke") || args.Contains("--picture-test");
+        var args = OS.GetCmdlineUserArgs(); proof = args.Contains("--proof"); selfTesting=args.Contains("--screen-test") || args.Contains("--villager-test") || args.Contains("--chest-test") || args.Contains("--save-reopen") || args.Contains("--save-audit") || args.Contains("--world-test") || args.Contains("--dock-ui-test") || args.Contains("--self-test") || args.Contains("--tv-smoke") || args.Contains("--picture-test");
         var data = args.Contains("--test-data") ? args[Array.IndexOf(args, "--test-data") + 1] : System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "CozyCave");
         store = new StateStore(data);
         try { worldSession=store.AcquireSession();state = store.Load();GD.Print("World loaded: "+store.DirectoryPath); }
@@ -75,6 +75,7 @@ public partial class Main : Node3D
         if (args.Contains("--self-test")) _ = RunSmokeTests(args[Array.IndexOf(args, "--self-test") + 1]);
         if (args.Contains("--dock-ui-test")) _ = RunDockUiTest(args[Array.IndexOf(args,"--dock-ui-test")+1]);
         if(args.Contains("--save-reopen")) _ = RunSaveReopenTest(args[Array.IndexOf(args,"--save-reopen")+1],args.Contains("--verify-save"),false);
+        if(args.Contains("--screen-test")) _ = RunScreenTests(args[Array.IndexOf(args,"--screen-test")+1]);
         if(args.Contains("--villager-test")) _ = RunVillagerTests(args[Array.IndexOf(args,"--villager-test")+1]);
         if(args.Contains("--chest-test")) _ = RunChestStorageTest(args[Array.IndexOf(args,"--chest-test")+1],args.Contains("--verify-save"));
         if(args.Contains("--save-audit")) _ = RunSaveReopenTest(args[Array.IndexOf(args,"--save-audit")+1],false,true);
@@ -89,6 +90,7 @@ public partial class Main : Node3D
     }
     public override void _Input(InputEvent e)
     {
+        if(HandleScreenRelease(e))return;
         if(e is InputEventMouseButton {ButtonIndex:MouseButton.Left,Pressed:false})miningHeld=false;
         if(HandleVillagerInput(e))return;
         if(HandleTvInput(e))return;
@@ -161,7 +163,7 @@ public partial class Main : Node3D
         CancelVillagerSpeech();
         ResetMouseActions();
         // Losing focus releases a held browser button, but does not close the TV.
-        if(tvFocused)bridge.Send(new{command="tv-pointer",u=tvLastAim.X,v=tvLastAim.Y,click=false,phase="up"});
+        if(tvFocused)CancelScreenPointer();
         escapeDown=false;escapeCanRelease=false;escapeHold=0;
         if(walking)Release(false);
         else Input.MouseMode=Input.MouseModeEnum.Visible;
@@ -208,7 +210,12 @@ public partial class Main : Node3D
             if (walking && mouse.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown) { if(desktopHotbarActive) MoveDesktopSelection(mouse.ButtonIndex==MouseButton.WheelUp?-1:1);else SelectHotbar(state.SelectedSlot + (mouse.ButtonIndex == MouseButton.WheelUp ? -1 : 1)); return; }
             if(mouse.ButtonIndex is MouseButton.Left or MouseButton.Right && !mouseActionsReady) {GetViewport().SetInputAsHandled();return;}
             if(walking && ((hovered=="$workstation" && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right) || (hovered=="$villager" && mouse.ButtonIndex==MouseButton.Right))){OpenVillagerMonitor();return;}
-            if(walking && !desktopHotbarActive && mouse.ButtonIndex==MouseButton.Left) {if(ClickTelevision())return;miningHeld=true;}
+            if(walking && SurfaceFor(hovered) is {} display && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right)
+            {
+                if(mouse.ButtonIndex==MouseButton.Left){screenPress=hovered;screenPressTime=0;miningHeld=true;return;}
+                if(!mouse.ShiftPressed){activeScreen=display;if(display.Role=="tv")FocusTelevision();else OpenVillagerMonitor();return;}
+            }
+            if(walking && !desktopHotbarActive && mouse.ButtonIndex==MouseButton.Left) {miningHeld=true;}
             if(walking && hovered=="$tv" && mouse.ButtonIndex==MouseButton.Right){if(mouse.ShiftPressed)ShowTelevision();else FocusTelevision();return;}
             if(walking && desktopHotbarActive && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right)
             {
@@ -265,7 +272,7 @@ public partial class Main : Node3D
         player.Velocity = velocity; player.MoveAndSlide();
         player.Position=new Vector3(Mathf.Clamp(player.Position.X,-WorldRadius+.5f,WorldRadius-.5f),Math.Min(player.Position.Y,ValleyTop-2),Mathf.Clamp(player.Position.Z,-WorldRadius+.5f,WorldRadius-.5f));
         if (player.Position.Y < ValleyBottom-4) ReturnHome();
-        camera.Position = new Vector3(0, 1.62f + (state.Settings.ViewBobbing && walking ? Mathf.Sin(bobTime) * 0.035f : 0), 0);
+        if(!tvFocused)camera.Position = new Vector3(0, 1.62f + (state.Settings.ViewBobbing && walking ? Mathf.Sin(bobTime) * 0.035f : 0), 0);
     }
     public override void _Process(double delta)
     {
@@ -280,7 +287,7 @@ public partial class Main : Node3D
                 case "villager-ready": if(!workstationConnected){workstationFrames=new Cave.Transport.TvFrameBuffer(p.GetProperty("channel").GetString()!);workstationConnected=true;}break;
                 case "villager-status": ReceiveVillager(p);break;
                 case "villager-dictation": ReviewVillagerVoice(p.GetProperty("text").GetString()??"");break;
-                case "villager-return": backgroundApp=false;break;
+                case "villager-return": LeaveTelevision();backgroundApp=false;StartWalking();break;
                 case "tv-ready": ConnectTv(p.GetProperty("channel").GetString()!);break;
                 case "tv-status": ReceiveTv(p);break;
                 case "tv-return": backgroundApp=false;ShowTelevision();break;
@@ -313,14 +320,15 @@ public partial class Main : Node3D
         var query = PhysicsRayQueryParameters3D.Create(camera.GlobalPosition, camera.GlobalPosition - camera.GlobalBasis.Z * 4);
         query.Exclude = new Godot.Collections.Array<Rid> { player.GetRid() };
         var hit = GetWorld3D().DirectSpaceState.IntersectRay(query);
-        hovered=RayItem(hit);UpdateTvAim((float)delta);
+        UpdateFocusedScreenCamera();hovered=RayItem(hit);UpdateTvAim((float)delta);
         hint.Text = tvFocused || panel != null ? "" : hovered == "$tv" ? (walking?"+":"TV  ·  Right-click for controls") : hovered == "$notebook" ? "NOTES & CHECKLISTS  -  Right-click" : hovered == "$jukebox" ? "JUKEBOX  ·  Right-click" : hovered != null && state.Chests.FirstOrDefault(c => c.Id == hovered) is { } chest ? chest.Name.ToUpperInvariant() + "  ·  Right-click to open" : walking ? "+" : "";
         AnimateChests((float)delta);
         UpdateDrops(Math.Min((float)delta,.1f)); UpdateHand((float)delta);
         UpdatePlacement();
         if(walking && panel==null && (Math.Abs(player.Position.X)>WorldRadius-1 || Math.Abs(player.Position.Z)>WorldRadius-1))hint.Text="Valley border | Tab: expand valley";
         PollMouseActions((WindowsAppControl.GetAsyncKeyState(1)&0x8000)!=0,(WindowsAppControl.GetAsyncKeyState(2)&0x8000)!=0);
-        UpdateBreaking(Math.Min((float)delta, .1f), !tvFocused && !desktopHotbarActive && miningHeld);
+        if(screenPress!=null)screenPressTime+=(float)delta;
+        UpdateBreaking(Math.Min((float)delta, .1f), !tvFocused && (!desktopHotbarActive || screenPress!=null) && miningHeld && (screenPress==null || screenPressTime>=.25f));
         UpdateEscape(Math.Min((float)delta,.1f));
         UpdateInteractionCursor();UpdateRain((float)delta);
         if (heldCursor != null)

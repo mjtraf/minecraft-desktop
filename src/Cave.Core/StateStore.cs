@@ -38,7 +38,7 @@ public sealed class StateStore(string directory)
             {
                 var bytes=File.ReadAllBytes(path);
                 var state = JsonSerializer.Deserialize<CaveState>(bytes) ?? throw new InvalidDataException();
-                if (state.Version is not (1 or 2 or 3 or 4 or 5 or 6)) throw new NotSupportedException($"Save version {state.Version} is not supported. Your save has not been changed.");
+                if (state.Version is not (1 or 2 or 3 or 4 or 5 or 6 or 7)) throw new NotSupportedException($"Save version {state.Version} is not supported. Your save has not been changed.");
                 if (state.Chests is null || state.Links is null || state.Settings is null || state.Decorations is null || state.SeenDesktop is null
                     || state.BuildingBlocks is null || state.RemovedTerrain is null || state.Supplies is null
                     || !state.Chests.Any(c => c.Id == "inbox") || state.Player is not { Length: 3 }) throw new InvalidDataException();
@@ -54,7 +54,7 @@ public sealed class StateStore(string directory)
                 state.SelectedSlot = Math.Clamp(state.SelectedSlot, 0, 8);
                 if(state.Version < 4) state.Supplies.TryAdd("glass",64);
                 if(state.Version < 5) foreach(var kind in new[]{"dark_oak_log","dark_oak_planks","spruce_planks","stone_bricks","cobblestone","dark_oak_stairs","spruce_slab","spruce_trapdoor","spruce_fence","red_carpet","brown_carpet","chain","campfire","stone_brick_stairs"}) state.Supplies.TryAdd(kind,32);
-                state.Version = 6;
+                state.Version = 7;
                 loaded=true;loadedHash=path==StatePath?Convert.ToHexString(SHA256.HashData(bytes)):null;
                 if(historySaved==default)Snapshot(path);
                 return state;

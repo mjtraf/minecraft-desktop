@@ -24,7 +24,10 @@ public partial class Main
         bool ClearStation(Vector3 at)
         {
             var shape=new PhysicsShapeQueryParameters3D {Shape=new BoxShape3D {Size=new Vector3(1.4f,2.3f,2.3f)},Transform=new Transform3D(Basis.Identity,at+new Vector3(0,1.2f,-.6f)),CollisionMask=1};
-            return GetWorld3D().DirectSpaceState.IntersectShape(shape,1).Count==0;
+            return GetWorld3D().DirectSpaceState.IntersectShape(shape,64).All(hit=>
+                hit["collider"].AsGodotObject() is Node body && body.HasMeta("item") &&
+                ScreenBlock(body.GetMeta("item").AsString()) is {ScreenRole:"desktop"} screen &&
+                screen.X==at.X && screen.Z==at.Z && screen.Y==at.Y+1);
         }
         if(!ClearStation(workstationAt))
         {
@@ -35,10 +38,12 @@ public partial class Main
         state.WorkstationPosition=[workstationAt.X,workstationAt.Y,workstationAt.Z];
         var desk=new Node3D {Name="VillagerWorkstation",Position=workstationAt};AddChild(desk);
         Box(desk,new Vector3(0,.5f,0),Vector3.One,TextureMaterial("spruce_planks"),true,"$workstation");
-        Box(desk,new Vector3(0,1.1f,.1f),new Vector3(.35f,.2f,.25f),Material("242424"));
-        Box(desk,new Vector3(0,1.52f,.13f),new Vector3(1.12f,.75f,.12f),Material("292d28"),true,"$workstation");
-        workstationMaterial=new StandardMaterial3D {AlbedoColor=workstationTexture==null?new Color("18231b"):Colors.White,AlbedoTexture=workstationTexture,ShadingMode=BaseMaterial3D.ShadingModeEnum.Unshaded};
-        desk.AddChild(new MeshInstance3D {Name="AgentScreen",Position=new Vector3(0,1.52f,.064f),RotationDegrees=new Vector3(0,180,0),Mesh=new QuadMesh {Size=new Vector2(1.04f,.68f)},MaterialOverride=workstationMaterial});
+        if(!state.ComputerBlockCreated)
+        {
+            state.ComputerBlockCreated=true;
+            var computer=new Cave.Core.Decoration("black_concrete",workstationAt.X,workstationAt.Z){Y=workstationAt.Y+1,ScreenRole="desktop"};
+            state.Decorations.Add(computer);CreateDecoration(computer);RebuildScreenSurfaces();
+        }
         // Stair chair: lower half plus a raised rear half, using the vanilla planks texture.
         Box(desk,new Vector3(0,.25f,-1),new Vector3(1,.5f,1),TextureMaterial("dark_oak_planks"),true,"$workstation");
         Box(desk,new Vector3(0,.75f,-1.25f),new Vector3(1,.5f,.5f),TextureMaterial("dark_oak_planks"),true,"$workstation");
@@ -112,7 +117,14 @@ public partial class Main
         if(!key.Pressed && villagerTalking){villagerTalking=false;bridge.Send(new {command="villager",action="mic-stop"});GetViewport().SetInputAsHandled();return true;}return false;
     }
     private void CancelVillagerSpeech(){if(!villagerTalking)return;villagerTalking=false;bridge.Send(new {command="villager",action="mic-cancel"});}
-    private void OpenVillagerMonitor(){CancelVillagerSpeech();Release(false);bridge.Send(new {command="villager",action="open"});}
+    private void OpenVillagerMonitor()
+    {
+        CancelVillagerSpeech();ClosePanel();
+        if(activeScreen?.Role!="desktop")activeScreen=screenSurfaces.Where(s=>s.Role=="desktop").OrderBy(s=>s.Node.GlobalPosition.DistanceSquaredTo(camera.GlobalPosition)).FirstOrDefault();
+        if(activeScreen==null){Toast("Place a computer block from the workbench to use the workstation.");return;}
+        if(camera.GlobalPosition.DistanceTo(activeScreen.Node.GlobalPosition)>6){Toast("Move closer to a computer screen.");return;}
+        FocusTelevision();
+    }
     private void ReceiveVillager(JsonElement p)
     {
         string text=p.GetProperty("text").GetString()??"Ready";bool wasWorking=villagerWorking;villagerWorking=p.GetProperty("working").GetBoolean();villagerStatus=text.Length>65?text[..65]+"…":text;
@@ -128,6 +140,6 @@ public partial class Main
     {
         if(villager==null || paused || locked)return;if(!workstationConnected && (workstationRetry-=dt)<=0){workstationRetry=5;if(bridge.Connected)bridge.Send(new {command="villager",action="connect"});}
         if(workstationFrames==null)return;
-        try{var bytes=workstationFrames.Read();if(bytes==null)return;using var image=new Image();if(image.LoadJpgFromBuffer(bytes)!=Error.Ok)return;if(workstationTexture==null)workstationTexture=ImageTexture.CreateFromImage(image);else workstationTexture.Update(image);workstationMaterial.AlbedoTexture=workstationTexture;workstationMaterial.AlbedoColor=Colors.White;}catch{workstationFrames?.Dispose();workstationFrames=null;workstationConnected=false;}
+        try{var bytes=workstationFrames.Read();if(bytes==null)return;using var image=new Image();if(image.LoadJpgFromBuffer(bytes)!=Error.Ok)return;if(workstationTexture==null)workstationTexture=ImageTexture.CreateFromImage(image);else workstationTexture.Update(image);workstationMaterial.AlbedoTexture=workstationTexture;workstationMaterial.AlbedoColor=Colors.White;RefreshScreenLabels();}catch{workstationFrames?.Dispose();workstationFrames=null;workstationConnected=false;}
     }
 }

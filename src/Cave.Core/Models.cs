@@ -2,12 +2,14 @@ namespace Cave.Core;
 
 public sealed class CaveState
 {
+    public bool ScreenBlocksCreated { get; set; }
+    public bool ComputerBlockCreated { get; set; }
     public float[] VillagerPosition {get;set;}=[3,0,-.5f];
     public float[] WorkstationPosition {get;set;}=[3,0,2];
     public int RoomRevision {get;set;}
     public int ValleyRadius {get;set;}=48;
     public bool Flying {get;set;}
-    public int Version { get; set; } = 6;
+    public int Version { get; set; } = 7;
     public bool NotebookItemCreated {get;set;}
     public bool HotbarOwnsStacks {get;set;}
     public string?[] HotbarStacks {get;set;}=new string?[9];
@@ -58,6 +60,7 @@ public sealed class ChestStack
 }
 public sealed class Decoration
 {
+    public string? ScreenRole { get; set; }
     public bool TabletopFrame {get;set;}
     public string? PicturePath { get; set; }
     public bool Carried { get; set; }

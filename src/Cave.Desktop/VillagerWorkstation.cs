@@ -9,7 +9,7 @@ internal sealed class VillagerMemory
     public string Folder {get;set;}=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Cozy Cave Work");
     public string Transcript {get;set;}="";
 }
-internal sealed class VillagerWorkstation:Form
+internal sealed partial class VillagerWorkstation:Form
 {
     private readonly VillagerSession session=new();
     private readonly Cave.Transport.TvFrameBuffer frames=new();
@@ -37,9 +37,9 @@ internal sealed class VillagerWorkstation:Form
     internal VillagerWorkstation(Action<string,object?> send,Action returnToCave)
     {
         Directory.CreateDirectory(Program.DataPath);sessionLease=new FileStream(Path.Combine(Program.DataPath,"villager.session.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);
-        this.send=send;this.returnToCave=returnToCave;Text="Minecraft Desktop — Villager workstation";ClientSize=new Size(1000,680);MinimumSize=new Size(760,520);StartPosition=FormStartPosition.CenterScreen;BackColor=Color.FromArgb(65,51,36);KeyPreview=true;
+        this.send=send;this.returnToCave=returnToCave;Text="Minecraft Desktop — Villager workstation";FormBorderStyle=FormBorderStyle.None;ClientSize=new Size(1000,680);MinimumSize=new Size(760,520);StartPosition=FormStartPosition.CenterScreen;BackColor=Color.FromArgb(65,51,36);KeyPreview=true;
         try{if(File.Exists(MemoryPath))memory=JsonSerializer.Deserialize<VillagerMemory>(File.ReadAllText(MemoryPath))??new();}catch{if(File.Exists(MemoryPath+".bak"))memory=JsonSerializer.Deserialize<VillagerMemory>(File.ReadAllText(MemoryPath+".bak"))??new();}
-        session.ThreadId=memory.ThreadId;transcript.Text=memory.Transcript.Length>0?memory.Transcript:"Your villager's Codex workstation\n\nType a task below, then Send or Ctrl+Enter. Choose Project folder for code or documents.\nIn the cave, aim at your nearby villager and hold V to dictate.\n\nClosing this window returns to the cave; your task continues. Stop interrupts it.\n";
+        session.ThreadId=memory.ThreadId;transcript.Text=memory.Transcript.Length>0?memory.Transcript:"Your villager's Codex workstation\n\nType a task below, then Send or Ctrl+Enter. Choose Project folder for code or documents.\nIn the cave, aim at your nearby villager and hold V to dictate.\n\nEscape returns to the cave; your task continues. Stop interrupts it.\n";
         var layout=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Padding=new Padding(12)};layout.RowStyles.Add(new RowStyle(SizeType.Absolute,43));layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,106));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,40));Controls.Add(layout);
         var bar=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=false};layout.Controls.Add(bar,0,0);
         void Button(string text,Action action){var button=new Button {Text=text,AutoSize=true,Height=32,BackColor=Color.FromArgb(200,195,180),ForeColor=Color.Black};button.Click+=(_,_)=>action();bar.Controls.Add(button);}
@@ -88,13 +88,9 @@ internal sealed class VillagerWorkstation:Form
                     string answer="";
                     if(allow)
                     {
-                        using var dialog=new Form {Text=q.GetProperty("header").GetString(),Width=650,Height=330,StartPosition=FormStartPosition.CenterParent};
-                        var label=new Label {Text=q.GetProperty("question").GetString(),Dock=DockStyle.Top,Height=80};dialog.Controls.Add(label);
-                        var entry=new TextBox {Dock=DockStyle.Top,UseSystemPasswordChar=q.TryGetProperty("isSecret",out var secret)&&secret.GetBoolean()};dialog.Controls.Add(entry);entry.BringToFront();
-                        var options=new FlowLayoutPanel {Dock=DockStyle.Fill};dialog.Controls.Add(options);options.BringToFront();
-                        if(q.TryGetProperty("options",out var choices)&&choices.ValueKind==JsonValueKind.Array)foreach(var choice in choices.EnumerateArray()){string value=choice.GetProperty("label").GetString()!;var pick=new Button {Text=value,AutoSize=true};pick.Click+=(_,_)=>entry.Text=value;options.Controls.Add(pick);}
-                        var ok=new Button {Text="Submit answer",Dock=DockStyle.Bottom,DialogResult=DialogResult.OK};dialog.Controls.Add(ok);dialog.AcceptButton=ok;
-                        if(dialog.ShowDialog(this)!=DialogResult.OK)return;answer=entry.Text;
+                        var choices=q.TryGetProperty("options",out var options)?options.EnumerateArray().Select(o=>o.GetProperty("label").GetString()??"").ToArray():[];
+                        var value=await PromptInWorld(q.GetProperty("header").GetString()??"Question",q.GetProperty("question").GetString()??"","",choices,q.TryGetProperty("isSecret",out var secret)&&secret.GetBoolean());
+                        if(value==null)return;answer=value;
                     }
                     answers[q.GetProperty("id").GetString()!]=new {answers=new[]{answer}};
                 }
@@ -114,15 +110,17 @@ internal sealed class VillagerWorkstation:Form
     }
     private async Task Stop(){try{await session.Stop();Report("Stopping…");}catch(Exception e){Report(e.Message);}}
     private async Task Login(){try{await session.Login();Report("Complete sign-in in your browser");}catch(Exception e){Report(e.Message);}}
-    private void ChooseFolder()
+    private async void ChooseFolder()
     {
         if(session.Busy){Report("Stop or finish the task before changing project");return;}
-        using var dialog=new FolderBrowserDialog {Description="Choose the villager's project folder",SelectedPath=memory.Folder};
-        if(dialog.ShowDialog(this)==DialogResult.OK){memory.Folder=dialog.SelectedPath;SaveMemory();Report("Project: "+memory.Folder);}
+        var path=await PromptInWorld("Project folder","Enter the full path to the folder the villager should work in.",memory.Folder);
+        if(path==null)return;
+        try{if(!Path.IsPathFullyQualified(path))throw new IOException("Enter a full folder path.");Directory.CreateDirectory(path);memory.Folder=Path.GetFullPath(path);SaveMemory();Report("Project folder updated");}
+        catch(Exception e){Report("Project folder: "+e.Message);}
     }
     internal void OpenMonitor(){if(WindowState==FormWindowState.Minimized)WindowState=FormWindowState.Normal;ShowInTaskbar=true;if(Location.X< -10000){var area=Screen.PrimaryScreen!.WorkingArea;Location=new Point(area.X+Math.Max(0,(area.Width-Width)/2),area.Y+Math.Max(0,(area.Height-Height)/2));}Show();Activate();input.Focus();}
     internal void ParkMonitor(){ShowInTaskbar=false;Location=new Point(-20000,-20000);}
-    private void Return(){ParkMonitor();returnToCave();}
+    private void Return(){EndInWorld();ParkMonitor();returnToCave();}
     internal void SetSuspended(bool value){suspended=value;if(value)CancelSpeech();}
     internal void StartSpeech()
     {
@@ -148,10 +146,11 @@ internal sealed class VillagerWorkstation:Form
     private void Tick()
     {
         if(closing)return;if(listening && DateTime.UtcNow-micStarted>TimeSpan.FromSeconds(60))StopSpeech();
-        if(++ticks%4==0 && dirty)SaveMemory();if(suspended)return;
+        if(++ticks%30==0 && dirty)SaveMemory();if(suspended)return;
         try
         {
             using var image=new Bitmap(Width,Height);DrawToBitmap(image,new Rectangle(Point.Empty,Size));
+            DrawRemoteCaret(image);
             using var scaled=new Bitmap(image,new Size(1000,680));using var bytes=new MemoryStream();scaled.Save(bytes,System.Drawing.Imaging.ImageFormat.Jpeg);frames.Write(bytes.ToArray());CapturedFrames++;
         }catch(Exception e){if(ticks%40==0)Program.Log("Villager monitor: "+e.Message);}
     }
