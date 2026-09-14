@@ -34,7 +34,35 @@ internal static class SystemHub
 }
 internal sealed class SystemPanel:Form
 {
-    protected override void OnDeactivate(EventArgs e) {base.OnDeactivate(e);Close();}
+    private delegate nint MouseHook(int code,nint message,nint data);
+    private MouseHook? outsideClickHook;
+    private nint outsideClickHandle;
+    [DllImport("user32.dll",SetLastError=true)] private static extern nint SetWindowsHookEx(int id,MouseHook hook,nint module,uint thread);
+    [DllImport("user32.dll")] private static extern bool UnhookWindowsHookEx(nint hook);
+    [DllImport("user32.dll")] private static extern nint CallNextHookEx(nint hook,int code,nint message,nint data);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode)] private static extern nint GetModuleHandle(string? name);
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        outsideClickHook=(code,message,data)=>
+        {
+            // Focus can change during the desktop handoff without a user click.
+            // Dismiss on a new outside press, never pointer motion or button release.
+            if(code>=0 && (message==0x201 || message==0x204 || message==0x207) && !IsDisposed)
+            {
+                var point=new Point(Marshal.ReadInt32(data),Marshal.ReadInt32(data,4));
+                if(!Bounds.Contains(point))BeginInvoke(()=>{if(!IsDisposed)Close();});
+            }
+            return CallNextHookEx(outsideClickHandle,code,message,data);
+        };
+        outsideClickHandle=SetWindowsHookEx(14,outsideClickHook,GetModuleHandle(null),0);
+        if(outsideClickHandle==0)Program.Log("System outside-click hook unavailable: "+Marshal.GetLastWin32Error());
+    }
+    protected override void Dispose(bool disposing)
+    {
+        if(outsideClickHandle!=0){UnhookWindowsHookEx(outsideClickHandle);outsideClickHandle=0;}
+        base.Dispose(disposing);
+    }
     internal SystemPanel(Action restore,Action<string>? actionHandler=null)
     {
         Text="Minecraft Desktop system inventory";FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;BackColor=Color.FromArgb(198,198,198);ClientSize=new Size(540,590);KeyPreview=true;
