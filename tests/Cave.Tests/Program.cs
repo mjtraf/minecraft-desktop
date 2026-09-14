@@ -7,6 +7,24 @@ int passed = 0;
 void Assert(bool ok, string message) { if (!ok) throw new Exception(message); Console.WriteLine("PASS " + message); passed++; }
 try
 {
+    var agentState=CaveState.Create();var legacyScreen=new Decoration("black_concrete",0,0){ScreenRole="desktop"};agentState.Decorations.Add(legacyScreen);
+    AgentRegistry.Migrate(agentState);AgentRegistry.Migrate(agentState);
+    Assert(agentState.Agents.Count==1 && legacyScreen.AgentId=="legacy","Existing computers migrate to one original agent without duplicating history");
+    var newScreen=new Decoration("black_concrete",10,0){ScreenRole="desktop"};agentState.Decorations.Add(newScreen);var alex=AgentRegistry.Attach(agentState,newScreen);alex.Name="Alex";
+    var extra=new Decoration("black_concrete",11,0){ScreenRole="desktop"};agentState.Decorations.Add(extra);
+    Assert(AgentRegistry.Attach(agentState,extra).Id==alex.Id && agentState.Agents.Count==2,"Adjacent fresh computer enlarges the same agent workstation");
+    newScreen.Carried=true;newScreen.X=20;newScreen.Carried=false;
+    Assert(AgentRegistry.Attach(agentState,newScreen).Id==alex.Id,"Moving a named computer preserves its agent identity");
+    var other=new Decoration("black_concrete",30,0){ScreenRole="desktop"};agentState.Decorations.Add(other);var robin=AgentRegistry.Attach(agentState,other);robin.Name="Robin";other.X=21;
+    Assert(ScreenLayout.Groups([newScreen,other]).Count==2,"Moving existing agents beside each other never merges their sessions");
+    Assert(!AgentRegistry.CanName(agentState.Agents,robin.Id,"alex") && AgentRegistry.CanName(agentState.Agents,robin.Id,"Róbin"),"Names are unique without case sensitivity and support Unicode");
+    Assert(AgentRegistry.Address(agentState.Agents,"Hey Alex, research caves")== (alex.Id,"research caves"),"Voice prefix addresses a named villager and removes the salutation");
+    Assert(AgentRegistry.Address(agentState.Agents,"Alexandra research caves").Id==null,"Name matching uses whole names, not prefixes");
+    Assert(AgentRegistry.Address(agentState.Agents,"Tell Alex about this",robin.Id).Id==robin.Id,"Mentioning another name inside a task does not redirect it");
+    Assert(AgentRegistry.Address(agentState.Agents,"Robin, write a report",alex.Id).Id==robin.Id,"Explicit spoken name takes priority over proximity");
+    Assert(!AgentRegistry.ValidId("../history") && AgentRegistry.ValidId(alex.Id),"Agent storage IDs cannot escape their directory");
+    var agentStore=new StateStore(Path.Combine(root,"agents"));agentStore.Save(agentState);var agentReload=agentStore.Load();
+    Assert(agentReload.Agents.Count==3 && agentReload.Agents.Any(a=>a.Id==alex.Id&&a.Name=="Alex") && agentReload.Decorations.Any(d=>d.Id==newScreen.Id&&d.AgentId==alex.Id),"Names and individual computer bindings persist across reload");
     var screenA=new Decoration("black_concrete",0,0){ScreenRole="tv"};
     var screenB=new Decoration("black_concrete",1,0){ScreenRole="tv"};
     Assert(ScreenLayout.Groups([screenA,screenB]).Single().Count==2,"Adjacent TV blocks form one screen");
@@ -108,7 +126,7 @@ try
     foreach (var field in new[] { "Supplies", "RemovedTerrain", "BuildingBlocks" }) oldSave.AsObject().Remove(field);
     File.WriteAllText(Path.Combine(store.DirectoryPath, "state.json"), oldSave.ToJsonString());
     var migrated = store.Load();
-    Assert(migrated.Version == 7 && migrated.Supplies["stone"] == 64 && migrated.BuildingBlocks.Count == 0 && migrated.Links.Count == state.Links.Count, "Version 1 save gains building supplies without changing file links");
+    Assert(migrated.Version == 8 && migrated.Supplies["stone"] == 64 && migrated.BuildingBlocks.Count == 0 && migrated.Links.Count == state.Links.Count, "Version 1 save gains building supplies without changing file links");
     migrated.Version = 2; migrated.Supplies["crate"] = 7; migrated.Supplies["plant"] = 3;
     migrated.Decorations.Add(new Decoration("crate", 2, 3));
     store.Save(migrated); var vanilla = store.Load();

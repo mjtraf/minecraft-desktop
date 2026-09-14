@@ -6,6 +6,7 @@ public partial class Main
 {
     private sealed record ScreenSurface(List<Decoration> Blocks, Node3D Node, Vector2 Size)
     {
+        public string? AgentId => Blocks[0].AgentId;
         public string Role => Blocks[0].ScreenRole!;
     }
     private readonly List<ScreenSurface> screenSurfaces=[];
@@ -44,11 +45,13 @@ public partial class Main
     }
     private void RebuildScreenSurfaces()
     {
+        AgentRegistry.Migrate(state);
+        foreach(var block in state.Decorations.Where(d=>!d.Carried && d.ScreenRole=="desktop"))AgentRegistry.Attach(state,block);
         if(tvFocused)LeaveTelevision();
         if(screensRoot!=null && GodotObject.IsInstanceValid(screensRoot)){screensRoot.GetParent()?.RemoveChild(screensRoot);screensRoot.QueueFree();}
         screensRoot=new Node3D{Name="DisplaySurfaces"};world.AddChild(screensRoot);screenSurfaces.Clear();activeScreen=null;
         tvMaterial ??=new StandardMaterial3D{ShadingMode=BaseMaterial3D.ShadingModeEnum.Unshaded};
-        if(workstationMaterial==null)workstationMaterial=new StandardMaterial3D{AlbedoColor=new Color("18231b"),ShadingMode=BaseMaterial3D.ShadingModeEnum.Unshaded};
+
         foreach(var group in ScreenLayout.Groups(state.Decorations))
         {
             var first=group[0];var basis=new Basis(Vector3.Up,Mathf.DegToRad(first.Rotation));
@@ -59,17 +62,17 @@ public partial class Main
             float aspect=first.ScreenRole=="tv"?16f/9:1000f/680;
             if(size.X/size.Y>aspect)size.X=size.Y*aspect;else size.Y=size.X/aspect;
             var node=new Node3D{Position=center+basis*new Vector3(0,0,-.506f),Basis=basis};screensRoot.AddChild(node);
-            node.AddChild(new MeshInstance3D{RotationDegrees=new Vector3(0,180,0),Mesh=new QuadMesh{Size=size},MaterialOverride=first.ScreenRole=="tv"?tvMaterial:workstationMaterial});
+            node.AddChild(new MeshInstance3D{RotationDegrees=new Vector3(0,180,0),Mesh=new QuadMesh{Size=size},MaterialOverride=first.ScreenRole=="tv"?tvMaterial:Agent(first.AgentId!).Material});
             var label=new Label3D{Text=first.ScreenRole=="tv"?"TV\nClick to turn on":"Computer",Font=MinecraftWorldFont(),FontSize=24,PixelSize=.003f,RotationDegrees=new Vector3(0,180,0),Position=new Vector3(0,0,-.005f),TextureFilter=BaseMaterial3D.TextureFilterEnum.Nearest,OutlineSize=0};
             node.AddChild(label);
             screenSurfaces.Add(new ScreenSurface(group,node,size));
         }
-        RefreshTvControls();
+        SyncVillagers();RefreshTvControls();
     }
     private void RefreshScreenLabels()
     {
         foreach(var surface in screenSurfaces)foreach(var label in surface.Node.GetChildren().OfType<Label3D>())
-            label.Visible=surface.Role=="tv"?(!tvOn || tvTexture==null):workstationTexture==null;
+            label.Visible=surface.Role=="tv"?(!tvOn || tvTexture==null):!agents.TryGetValue(surface.AgentId??"",out var a)||a.Texture==null;
     }
     private bool TryScreenAim(ScreenSurface surface,out Vector2 uv)
     {

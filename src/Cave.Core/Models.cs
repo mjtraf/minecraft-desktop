@@ -2,6 +2,8 @@ namespace Cave.Core;
 
 public sealed class CaveState
 {
+    public bool AgentsMigrated { get; set; }
+    public List<AgentProfile> Agents { get; set; } = [];
     public bool ScreenBlocksCreated { get; set; }
     public bool ComputerBlockCreated { get; set; }
     public float[] VillagerPosition {get;set;}=[3,0,-.5f];
@@ -9,7 +11,7 @@ public sealed class CaveState
     public int RoomRevision {get;set;}
     public int ValleyRadius {get;set;}=48;
     public bool Flying {get;set;}
-    public int Version { get; set; } = 7;
+    public int Version { get; set; } = 8;
     public bool NotebookItemCreated {get;set;}
     public bool HotbarOwnsStacks {get;set;}
     public string?[] HotbarStacks {get;set;}=new string?[9];
@@ -60,6 +62,7 @@ public sealed class ChestStack
 }
 public sealed class Decoration
 {
+    public string? AgentId { get; set; }
     public string? ScreenRole { get; set; }
     public bool TabletopFrame {get;set;}
     public string? PicturePath { get; set; }
@@ -127,4 +130,12 @@ public sealed class NoteTask
 {
     public string Text {get;set;}="";
     public bool Done {get;set;}
+}
+
+public sealed class AgentProfile
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public string Name { get; set; } = "Villager";
+    public bool ApproachForQuestions { get; set; } = true;
+    public float[]? Position { get; set; }
 }

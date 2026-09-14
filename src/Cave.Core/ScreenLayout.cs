@@ -13,7 +13,7 @@ public static class ScreenLayout
             var first = remaining[0];
             var angle = first.Rotation * MathF.PI / 180;
             int dx = (int)MathF.Round(MathF.Cos(angle)), dz = -(int)MathF.Round(MathF.Sin(angle));
-            Decoration? At(int x, int y) => remaining.FirstOrDefault(d => d.ScreenRole == first.ScreenRole &&
+            Decoration? At(int x, int y) => remaining.FirstOrDefault(d => d.ScreenRole == first.ScreenRole && d.AgentId == first.AgentId &&
                 Math.Abs(d.Rotation - first.Rotation) < .01f && Math.Abs(d.X - first.X - dx*x) < .01f &&
                 Math.Abs(d.Z - first.Z - dz*x) < .01f && Math.Abs(d.Y - first.Y - y) < .01f);
             // Expand in both horizontal directions so either cardinal facing joins correctly.

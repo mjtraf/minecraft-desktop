@@ -5,6 +5,9 @@ namespace Cave.Desktop;
 
 internal sealed class VillagerMemory
 {
+    public string Name {get;set;}="Villager";
+    public bool Configured {get;set;}
+    public bool ApproachForQuestions {get;set;}=true;
     public string? ThreadId {get;set;}
     public string Folder {get;set;}=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Cozy Cave Work");
     public string Transcript {get;set;}="";
@@ -33,16 +36,26 @@ internal sealed partial class VillagerWorkstation:Form
     internal int CapturedFrames {get;private set;}
     internal bool Working=>session.Busy;
     protected override bool ShowWithoutActivation=>true;
-    private string MemoryPath=>Path.Combine(Program.DataPath,"villager-agent.json");
-    internal VillagerWorkstation(Action<string,object?> send,Action returnToCave)
+    private readonly string agentId;
+    private readonly Func<string,bool> canName;
+    private Button nameButton=null!;
+    internal string AgentName=>memory.Name;
+    private string AgentDirectory=>agentId==Cave.Core.AgentRegistry.LegacyId?Program.DataPath:Path.Combine(Program.DataPath,"agents",agentId);
+    private string MemoryPath=>Path.Combine(AgentDirectory,"villager-agent.json");
+    internal VillagerWorkstation(Action<string,object?> send,Action returnToCave,string id="legacy",string name="Villager",Func<string,bool>? nameAvailable=null)
     {
-        Directory.CreateDirectory(Program.DataPath);sessionLease=new FileStream(Path.Combine(Program.DataPath,"villager.session.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);
+        if(!Cave.Core.AgentRegistry.ValidId(id))throw new ArgumentException("Invalid agent ID");
+        agentId=id;canName=nameAvailable??(_=>true);memory.Name=name;
+        if(id!="legacy")memory.Folder=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Minecraft Desktop Work",id);
+        Directory.CreateDirectory(AgentDirectory);sessionLease=new FileStream(Path.Combine(AgentDirectory,"villager.session.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);
         this.send=send;this.returnToCave=returnToCave;Text="Minecraft Desktop — Villager workstation";FormBorderStyle=FormBorderStyle.None;ClientSize=new Size(1000,680);MinimumSize=new Size(760,520);StartPosition=FormStartPosition.CenterScreen;BackColor=Color.FromArgb(65,51,36);KeyPreview=true;
         try{if(File.Exists(MemoryPath))memory=JsonSerializer.Deserialize<VillagerMemory>(File.ReadAllText(MemoryPath))??new();}catch{if(File.Exists(MemoryPath+".bak"))memory=JsonSerializer.Deserialize<VillagerMemory>(File.ReadAllText(MemoryPath+".bak"))??new();}
+        if(id=="legacy")memory.Configured=true;
         session.ThreadId=memory.ThreadId;transcript.Text=memory.Transcript.Length>0?memory.Transcript:"Your villager's Codex workstation\n\nType a task below, then Send or Ctrl+Enter. Choose Project folder for code or documents.\nIn the cave, aim at your nearby villager and hold V to dictate.\n\nEscape returns to the cave; your task continues. Stop interrupts it.\n";
         var layout=new TableLayoutPanel {Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Padding=new Padding(12)};layout.RowStyles.Add(new RowStyle(SizeType.Absolute,43));layout.RowStyles.Add(new RowStyle(SizeType.Percent,100));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,106));layout.RowStyles.Add(new RowStyle(SizeType.Absolute,40));Controls.Add(layout);
-        var bar=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=false};layout.Controls.Add(bar,0,0);
+        var bar=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=false,AutoScroll=true};layout.Controls.Add(bar,0,0);
         void Button(string text,Action action){var button=new Button {Text=text,AutoSize=true,Height=32,BackColor=Color.FromArgb(200,195,180),ForeColor=Color.Black};button.Click+=(_,_)=>action();bar.Controls.Add(button);}
+        nameButton=new Button {Text=memory.Name,AutoSize=true,Height=32};nameButton.Click+=(_,_)=>_=ConfigureAgent();bar.Controls.Add(nameButton);
         Button("Send",()=>_=Submit(input.Text));Button("Stop",()=>_=Stop());Button("Project folder",ChooseFolder);Button("Open folder",()=>{Directory.CreateDirectory(memory.Folder);System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(memory.Folder){UseShellExecute=true});});Button("Sign in",()=>_=Login());Button("Back to cave",Return);
         layout.Controls.Add(transcript,0,1);layout.Controls.Add(input,0,2);
         var footer=new FlowLayoutPanel {Dock=DockStyle.Fill,WrapContents=false};status.Width=430;status.Dock=DockStyle.None;status.Height=32;footer.Controls.Add(status);footer.Controls.Add(approve);footer.Controls.Add(deny);layout.Controls.Add(footer,0,3);
@@ -104,6 +117,7 @@ internal sealed partial class VillagerWorkstation:Form
     }
     internal async Task Submit(string text)
     {
+        if(!memory.Configured){Report("Needs attention — open this computer to choose a name and project folder.");return;}
         text=text.Trim();if(text.Length==0)return;if(session.Busy){Report("Already working — Stop before sending another task");return;}
         try{Directory.CreateDirectory(memory.Folder);Append("\nYou: "+text+"\n\nVillager: ");input.Clear();Report("Connecting to Codex…");await session.Send(text,memory.Folder);Report("Working");SaveMemory();}
         catch(Exception e){Append("\n"+e.Message+"\n");input.Text=text;Report("Could not start — check sign-in and retry");}
@@ -121,6 +135,25 @@ internal sealed partial class VillagerWorkstation:Form
     internal void OpenMonitor(){if(WindowState==FormWindowState.Minimized)WindowState=FormWindowState.Normal;ShowInTaskbar=true;if(Location.X< -10000){var area=Screen.PrimaryScreen!.WorkingArea;Location=new Point(area.X+Math.Max(0,(area.Width-Width)/2),area.Y+Math.Max(0,(area.Height-Height)/2));}Show();Activate();input.Focus();}
     internal void ParkMonitor(){ShowInTaskbar=false;Location=new Point(-20000,-20000);}
     private void Return(){EndInWorld();ParkMonitor();returnToCave();}
+    internal void ReportProfile()=>send("villager-profile",new {name=memory.Name,approach=memory.ApproachForQuestions});
+    internal async Task ConfigureAgent()
+    {
+        if(inlinePrompt!=null)return;
+        var name=await PromptInWorld("Name your villager","Use a distinct name you can say aloud, such as Alex or Robin.",memory.Name);
+        if(name==null)return;name=name.Trim();
+        if(!Cave.Core.AgentRegistry.CanName([],agentId,name)||!canName(name)){Report("Choose a unique name, 2–32 letters or numbers.");return;}
+        if(!memory.Configured)
+        {
+            var folder=await PromptInWorld("Project folder","Enter the full path where this villager should work.",memory.Folder);
+            if(folder==null)return;
+            try{if(!Path.IsPathFullyQualified(folder))throw new IOException("Enter a full path.");Directory.CreateDirectory(folder);memory.Folder=Path.GetFullPath(folder);}catch(Exception e){Report(e.Message);return;}
+        }
+        var approach=await PromptInWorld("When I need your answer","Should this villager walk near you while you are exploring?",memory.ApproachForQuestions?"Approach":"Stay at desk",["Approach","Stay at desk"]);
+        if(approach==null)return;
+        if(!canName(name)){Report("That name was just taken. Choose another name.");return;}
+        memory.Name=name;memory.ApproachForQuestions=approach=="Approach";memory.Configured=true;nameButton.Text=name;SaveMemory();ReportProfile();Report("Ready");
+    }
+    internal void OpenInWorld(){BeginInWorld();ReportProfile();if(!memory.Configured)_=ConfigureAgent();}
     internal void SetSuspended(bool value){suspended=value;if(value)CancelSpeech();}
     internal void StartSpeech()
     {
@@ -141,7 +174,7 @@ internal sealed partial class VillagerWorkstation:Form
     internal void CancelSpeech(){listening=false;try{speech?.RecognizeAsyncCancel();}catch{} }
     private void SaveMemory()
     {
-        try{Directory.CreateDirectory(Program.DataPath);memory.Transcript=transcript.Text;memory.ThreadId=session.ThreadId;File.WriteAllText(MemoryPath+".tmp",JsonSerializer.Serialize(memory));if(File.Exists(MemoryPath))File.Replace(MemoryPath+".tmp",MemoryPath,MemoryPath+".bak");else File.Move(MemoryPath+".tmp",MemoryPath);dirty=false;}catch(Exception e){Report("Agent history save failed: "+e.Message);}
+        try{Directory.CreateDirectory(AgentDirectory);memory.Transcript=transcript.Text;memory.ThreadId=session.ThreadId;File.WriteAllText(MemoryPath+".tmp",JsonSerializer.Serialize(memory));if(File.Exists(MemoryPath))File.Replace(MemoryPath+".tmp",MemoryPath,MemoryPath+".bak");else File.Move(MemoryPath+".tmp",MemoryPath);dirty=false;}catch(Exception e){Report("Agent history save failed: "+e.Message);}
     }
     private void Tick()
     {
@@ -156,7 +189,7 @@ internal sealed partial class VillagerWorkstation:Form
     }
     protected override void Dispose(bool disposing)
     {
-        if(disposing && !closing){closing=true;timer.Stop();CancelSpeech();speech?.Dispose();SaveMemory();session.Dispose();frames.Dispose();timer.Dispose();sessionLease.Dispose();}
+        if(disposing && !closing){closing=true;promptResult?.TrySetResult(null);timer.Stop();CancelSpeech();speech?.Dispose();SaveMemory();session.Dispose();frames.Dispose();timer.Dispose();sessionLease.Dispose();}
         base.Dispose(disposing);
     }
 }

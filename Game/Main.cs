@@ -209,7 +209,7 @@ public partial class Main : Node3D
         {
             if (walking && mouse.ButtonIndex is MouseButton.WheelUp or MouseButton.WheelDown) { if(desktopHotbarActive) MoveDesktopSelection(mouse.ButtonIndex==MouseButton.WheelUp?-1:1);else SelectHotbar(state.SelectedSlot + (mouse.ButtonIndex == MouseButton.WheelUp ? -1 : 1)); return; }
             if(mouse.ButtonIndex is MouseButton.Left or MouseButton.Right && !mouseActionsReady) {GetViewport().SetInputAsHandled();return;}
-            if(walking && ((hovered=="$workstation" && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right) || (hovered=="$villager" && mouse.ButtonIndex==MouseButton.Right))){OpenVillagerMonitor();return;}
+            if(walking && ((hovered=="$workstation" && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right) || (TargetVillagerId()!=null && mouse.ButtonIndex==MouseButton.Right))){OpenVillagerMonitor();return;}
             if(walking && SurfaceFor(hovered) is {} display && mouse.ButtonIndex is MouseButton.Left or MouseButton.Right)
             {
                 if(mouse.ButtonIndex==MouseButton.Left){screenPress=hovered;screenPressTime=0;miningHeld=true;return;}
@@ -284,7 +284,8 @@ public partial class Main : Node3D
             var p = message.TryGetProperty("payload", out var payload) ? payload : default;
             switch (command)
             {
-                case "villager-ready": if(!workstationConnected){workstationFrames=new Cave.Transport.TvFrameBuffer(p.GetProperty("channel").GetString()!);workstationConnected=true;}break;
+                case "villager-ready": ReceiveVillagerReady(p);break;
+                case "villager-profile": ReceiveVillagerProfile(p);break;
                 case "villager-status": ReceiveVillager(p);break;
                 case "villager-dictation": ReviewVillagerVoice(p.GetProperty("text").GetString()??"");break;
                 case "villager-return": LeaveTelevision();backgroundApp=false;StartWalking();break;
@@ -337,5 +338,5 @@ public partial class Main : Node3D
             if (heldCursor.Icon == null && heldItem is { } held && thumbnails.TryGetValue(held.Entry.Path, out var icon)) { heldCursor.Icon = icon; heldCursor.QueueRedraw(); }
         }
     }
-    public override void _ExitTree() { worldSession?.Dispose(); workstationFrames?.Dispose(); tvFrames?.Dispose(); watcher.Dispose(); bridge.Dispose(); shellImages.Dispose(); }
+    public override void _ExitTree() { worldSession?.Dispose(); foreach(var a in agents.Values)a.Frames?.Dispose(); tvFrames?.Dispose(); watcher.Dispose(); bridge.Dispose(); shellImages.Dispose(); }
 }

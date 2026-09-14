@@ -12,7 +12,7 @@ Godot renders the world. A C# Windows helper connects it to files, applications,
 
 ## Villager agent
 
-A villager represents a persistent Codex session. You can type a task or hold V while aiming at the villager to dictate, then review the text before sending. While the agent works, the villager sits at its computer. Click the computer to zoom in and operate the same transcript and controls inside the world.
+A villager represents a persistent Codex session. You can type a task or hold V and address a villager by name from anywhere in the cave to dictate, then review the text before sending. While the agent works, the villager sits at its computer. Click the computer to zoom in and operate the same transcript and controls inside the world.
 
 The [session client](../src/Cave.Desktop/VillagerSession.cs) communicates with `codex app-server` over JSON-RPC on standard input/output. It resumes threads, streams responses, tracks task status, and interrupts turns. The [workstation](../src/Cave.Desktop/VillagerWorkstation.cs) handles input, approval requests, speech recognition, and transcript persistence.
 
@@ -23,7 +23,7 @@ flowchart LR
     Codex --> Tools[Files, commands, desktop tools]
 ```
 
-The [desktop adapter](../src/Cave.Desktop/AgentDesktop.cs) exposes screenshots, clicks, scrolling, text, and keys. These operate on the real desktop with the user's access. The current version supports one Codex workstation and requires a separately authenticated CLI.
+The [desktop adapter](../src/Cave.Desktop/AgentDesktop.cs) exposes screenshots, clicks, scrolling, text, and keys. These operate on the real desktop with the user's access. Each workstation owns a separate Codex session and requires a separately authenticated CLI. Agent sessions can run concurrently, but desktop-control actions still operate on the same physical Windows session.
 
 ## Web TV
 
@@ -45,6 +45,12 @@ The [state store](../src/Cave.Core/StateStore.cs) writes versioned records atomi
 
 ## Tests and current limits
 
-[GitHub Actions](https://github.com/mjtraf/minecraft-desktop/actions) runs 47 core checks and three transport checks on Windows. These cover source-file integrity, discovery, duplicate links, save recovery, placement, water flow, message ordering, and stalled peers.
+[GitHub Actions](https://github.com/mjtraf/minecraft-desktop/actions) runs 58 core checks and three transport checks on Windows. These cover source-file integrity, discovery, duplicate links, save recovery, placement, water flow, message ordering, and stalled peers.
 
 Additional in-app checks require the resource pack and an interactive desktop. Desktop attachment, microphone input, recording, and multi-monitor behavior need broader testing across PCs. Block interactions cover a subset of Minecraft behavior.
+
+## Agent identity and routing
+
+Computer blocks retain an agent ID through inventory, drops, and relocation. Fresh adjacent screens inherit one neighbour’s ID; existing agents never merge. Version 8 world saves contain names and approach preferences. The original agent retains `villager-agent.json`; new agents store separate histories and session locks under `agents/<id>/`.
+
+Every workstation input, status event, and frame channel is addressed by agent ID. Native controls remain off-screen and are operated through the in-world display. Voice recording is push-to-talk; a leading name selects the recipient, followed by explicit text review. Villager questions and completion gestures do not activate application windows.

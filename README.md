@@ -8,7 +8,7 @@ I wanted the desktop to feel like a room I could spend time in. This project bri
 
 ## Inside the cave
 
-**Villager agents.** Give a villager a coding, research, or writing task through text or voice. It sits at its computer while an AI agent works. Click the monitor to zoom in and control the same workstation directly in the world. Escape returns to walking.
+**Villager agents.** Place a computer, name its villager, and give it a coding, research, or writing task. Each workstation keeps its own conversation and project folder. Hold V and address a villager by name to dictate from anywhere in the cave. It sits at its computer while an AI agent works. Click the monitor to zoom in and control the same workstation directly in the world. Escape returns to walking.
 
 ![A villager working at its computer](docs/media/villager.png)
 
@@ -37,7 +37,7 @@ C# and Godot 4 handle the world and interactions. A .NET Windows helper connects
 
 A working Windows 11 prototype. The screenshots show the local build; the full Minecraft resource pack and packaged app are not included. Running the cave requires a compatible resource pack. [Asset details](ASSETS.md).
 
-The current agent integration supports one Codex workstation. Desktop behavior and performance still need testing on more machines. The agent can operate on real files and applications using the signed-in user's access.
+The current agent integration supports independent Codex workstations. Desktop behavior and performance still need testing on more machines. The agent can operate on real files and applications using the signed-in user's access.
 
 Built with Codex assisting implementation, debugging, and testing, alongside hands-on design and iteration.
 
