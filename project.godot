@@ -1,7 +1,9 @@
 config_version=5
 
 [application]
-config/name="Cozy Cave"
+config/name="Minecraft Desktop"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="Godot/app_userdata/Cozy Cave"
 config/icon="res://Assets/icon.png"
 run/main_scene="res://Game/Main.tscn"
 config/features=PackedStringArray("4.5", "C#", "GL Compatibility")

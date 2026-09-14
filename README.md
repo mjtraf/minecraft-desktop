@@ -1,10 +1,48 @@
 # Minecraft Desktop
 
-A personal Windows 11 project that turns the desktop into a walkable, cozy voxel cave. Chests organize links to real files, a Minecraft-style dock opens applications, and an in-world desk brings notes, pictures, video, and a Codex agent into the room.
+**What if your desktop was a place you could walk into—and your AI assistant worked at the desk next to you?**
+
+Minecraft Desktop explores that idea as a working Windows 11 prototype. Files become chest contents, YouTube becomes a television in the room, and a villager becomes an interface to a real Codex agent. The goal is to make everyday computing feel spatial, playful, and personal while keeping real Windows applications accessible.
+
+![The working prototype: timber lounge, fireplace, rainy windows, and a building hotbar](docs/media/cave.png)
+
+**For hiring teams:** [Engineering case study](docs/CASE_STUDY.md) · [AI integration](docs/CASE_STUDY.md#ai-agent-integration) · [Demo walkthrough](docs/DEMO.md) · [Automated checks](https://github.com/mjtraf/minecraft-desktop/actions)
+
+**Stack:** C# · .NET 8 · Godot 4 · Win32/WinForms · WebView2 · Codex app-server · JSON-RPC · local IPC · Windows speech recognition
+
+## What this project demonstrates
+
+| Skill | Concrete example | Implementation |
+| --- | --- | --- |
+| Creative product design | Translate folders, browser video, and AI work into objects in a usable 3D room | [World interactions](Game/World.cs), [file chests](Game/ChestUi.cs) |
+| Applied AI engineering | Persistent agent sessions, streamed output, task interruption, approval handling, and voice-to-task review | [Agent client](src/Cave.Desktop/VillagerSession.cs), [workstation](src/Cave.Desktop/VillagerWorkstation.cs) |
+| Browser and graphics integration | Display a live WebView2 browser on an in-world TV and route player input back to the page | [Browser host](src/Cave.Desktop/CaveTv.cs), [TV interaction](Game/Television.cs) |
+| Windows systems programming | Desktop attachment, focus handoff, application previews, and crash recovery | [Desktop lifecycle](src/Cave.Desktop/Program.cs), [window previews](src/Cave.Desktop/WindowPreviews.cs) |
+| Real-time interaction | Voxel placement, collision, mining, water flow, and villager movement | [Building](Game/Building.cs), [water](src/Cave.Core/WaterFlow.cs), [villager](Game/Villager.cs) |
+| Reliability and data modeling | Persist object identity and file links; reject stale saves; bound stalled IPC writes | [State store](src/Cave.Core/StateStore.cs), [transport](Shared/PipeOutbox.cs), [tests](tests) |
+
+## See the prototype
+
+![A villager at its computer in the cave](docs/media/villager.png)
+
+The villager's workstation connects to a real Codex session. Task status drives its in-world behavior; its monitor displays the workstation, which can be opened for readable text and direct control.
+
+<details>
+<summary>Open the workstation screenshot</summary>
+
+![Native agent workstation with transcript, task input, stop, and project controls](docs/media/workstation.png)
+
+</details>
+
+These are actual captures from isolated development runs, not concept renders. Some captures retain the earlier Cozy Cave title. A narrated video is not published yet; the [90-second demo plan](docs/DEMO.md) covers the agent, interactive TV, and file workflow.
+
+## Project scope
 
 **Portfolio source preview.** Source code and original generated assets are included. Minecraft artwork, models, sounds, music, personal files, saved worlds, credentials, and packaged executables are excluded. A fresh clone cannot run the complete cave without a compatible resource pack. See [ASSETS.md](ASSETS.md).
 
-This is an unofficial fan project, not affiliated with or endorsed by Mojang or Microsoft. The internal project and save-directory name remains **CozyCave** so existing installations keep their saved worlds.
+This is an unofficial fan project, not affiliated with or endorsed by Mojang or Microsoft. The public and visible app name is **Minecraft Desktop**. Internal assembly identifiers and existing save paths retain **CozyCave** for compatibility.
+
+**Development approach:** This is an AI-assisted project developed iteratively with Codex. The creator defined the concept, directed feature and interaction design, and evaluated the experience through hands-on feedback; Codex assisted with implementation, debugging, tests, and documentation. The AI engineering contribution is the integration of an existing agent into a new desktop interaction model, not training a foundation model. See the [case study](docs/CASE_STUDY.md) for decisions, evidence, and remaining limitations.
 
 ## Features
 

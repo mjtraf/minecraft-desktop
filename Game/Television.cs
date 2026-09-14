@@ -91,7 +91,7 @@ public partial class Main
     }
     private void TvCommand(string action)
     {
-        if(!bridge.Connected && !selfTesting){tvStatus="TV needs the Cozy Cave desktop launcher. Restart using Cozy Cave in Start.";RefreshTvControls();return;}
+        if(!bridge.Connected && !selfTesting){tvStatus="TV needs the Minecraft Desktop desktop launcher. Restart using Minecraft Desktop in Start.";RefreshTvControls();return;}
         bridge.Send(new{command="tv",action,requestId=++tvRequest,power=tvOn,muted=state.Settings.TvMuted,volume=state.Settings.TvVolume,url=state.Settings.TvUrl});
         RefreshTvControls();
     }
@@ -120,7 +120,7 @@ public partial class Main
         var address=new LineEdit {Name="TvAddress",Text=state.Settings.TvUrl,PlaceholderText="https://www.youtube.com/watch?v=…",SizeFlagsHorizontal=Control.SizeFlags.ExpandFill};sourceRow.AddChild(address);
         sourceRow.AddChild(Button("Play video",()=>LoadTvVideo(address.Text)));address.TextSubmitted+=LoadTvVideo;
         box.AddChild(Button("Open player window to browse YouTube",()=>{tvOn=true;TvCommand("browse");}));
-        box.AddChild(new Label{Text="Close the player window to return here. TV starts off when Cozy Cave launches.",AutowrapMode=TextServer.AutowrapMode.WordSmart});
+        box.AddChild(new Label{Text="Close the player window to return here. TV starts off when Minecraft Desktop launches.",AutowrapMode=TextServer.AutowrapMode.WordSmart});
         RefreshTvControls();
     }
     private void RefreshTvControls()

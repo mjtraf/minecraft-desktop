@@ -20,7 +20,7 @@ internal sealed class AppWindowBorder:Form
     {
         this.target=target;Native.GetWindowThreadProcessId(target,out processId);
         FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;DoubleBuffered=true;AutoScaleMode=AutoScaleMode.None;
-        StartPosition=FormStartPosition.Manual;Text="Cozy Cave app border";BackColor=Color.FromArgb(49,34,22);
+        StartPosition=FormStartPosition.Manual;Text="Minecraft Desktop app border";BackColor=Color.FromArgb(49,34,22);
         using var stream=typeof(AppWindowBorder).Assembly.GetManifestResourceStream("border.oak.png")!;using var source=Image.FromStream(stream);oak=new Bitmap(source);
         _=Handle;Native.SetStyle(Handle,-8,target);
     }

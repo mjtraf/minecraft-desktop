@@ -10,7 +10,7 @@ internal sealed class TvPlayerWindow:Form
     protected override bool ShowWithoutActivation=>true;
     internal TvPlayerWindow()
     {
-        Text="Cozy Cave TV — close this window to return to the cave";ShowInTaskbar=false;
+        Text="Minecraft Desktop TV — close this window to return to the cave";ShowInTaskbar=false;
         StartPosition=FormStartPosition.Manual;ClientSize=new Size(960,540);Location=new Point(-20000,-20000);
         FormClosing+=(_,e)=>{if(ClosingForReal)return;e.Cancel=true;Location=new Point(-20000,-20000);ReturnToCave?.Invoke();};
     }
@@ -62,7 +62,7 @@ internal sealed class CaveTv:IDisposable
         };
         browser.CoreWebView2.NewWindowRequested+=(_,e)=>{e.Handled=true;if(Uri.TryCreate(e.Uri,UriKind.Absolute,out var u)&&u.Scheme=="https")browser.CoreWebView2.Navigate(e.Uri);};
         browser.CoreWebView2.PermissionRequested+=(_,e)=>e.State=CoreWebView2PermissionState.Deny;
-        browser.CoreWebView2.ProcessFailed+=(_,_)=>{power=false;Report("The TV player stopped. Restart Cozy Cave to reconnect.");};
+        browser.CoreWebView2.ProcessFailed+=(_,_)=>{power=false;Report("The TV player stopped. Restart Minecraft Desktop to reconnect.");};
         browser.CoreWebView2.IsMuted=true;
         frameEvents=Core!.GetDevToolsProtocolEventReceiver("Page.screencastFrame");
         frameEvents.DevToolsProtocolEventReceived+=OnFrame;

@@ -1,0 +1,19 @@
+name: Core and transport checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.414
+      - name: Core behavior
+        run: dotnet run --project tests/Cave.Tests
+      - name: IPC transport
+        run: dotnet run --project tests/Cave.Transport.Tests

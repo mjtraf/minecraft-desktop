@@ -35,12 +35,12 @@ public partial class Main : Node3D
     private string? hovered;
     public override void _Ready()
     {
-        DisplayServer.WindowSetTitle("Cozy Cave");
+        DisplayServer.WindowSetTitle("Minecraft Desktop");
         var args = OS.GetCmdlineUserArgs(); proof = args.Contains("--proof"); selfTesting=args.Contains("--villager-test") || args.Contains("--chest-test") || args.Contains("--save-reopen") || args.Contains("--save-audit") || args.Contains("--world-test") || args.Contains("--dock-ui-test") || args.Contains("--self-test") || args.Contains("--tv-smoke") || args.Contains("--picture-test");
         var data = args.Contains("--test-data") ? args[Array.IndexOf(args, "--test-data") + 1] : System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "CozyCave");
         store = new StateStore(data);
         try { worldSession=store.AcquireSession();state = store.Load();GD.Print("World loaded: "+store.DirectoryPath); }
-        catch (Exception e) { GD.PushError(e.Message); OS.Alert("The world could not be opened. It may already be running. Your save was not changed.\n"+e.Message,"Cozy Cave save protection");GetTree().Quit(1); return; }
+        catch (Exception e) { GD.PushError(e.Message); OS.Alert("The world could not be opened. It may already be running. Your save was not changed.\n"+e.Message,"Minecraft Desktop save protection");GetTree().Quit(1); return; }
         if(!proof && state.RoomRevision<1)
         {
             var previous=System.IO.Path.Combine(data,"state.json");
@@ -130,7 +130,7 @@ public partial class Main : Node3D
         if (state == null) return;
         FlushNotebookEdits();
         if (player != null) { var savedPosition=sittingOn!=null?standingPosition:player.Position;state.Player = [savedPosition.X,savedPosition.Y,savedPosition.Z]; state.Yaw = player.Rotation.Y; }
-        try { store.Save(state); dirty = false;saveErrorReported=false; } catch (Exception e) { Toast("Could not save: " + e.Message); dirty = true;if(!saveErrorReported){saveErrorReported=true;GD.PushError(e.Message);OS.Alert("Your world could not be saved.\n"+e.Message,"Cozy Cave save problem");} }
+        try { store.Save(state); dirty = false;saveErrorReported=false; } catch (Exception e) { Toast("Could not save: " + e.Message); dirty = true;if(!saveErrorReported){saveErrorReported=true;GD.PushError(e.Message);OS.Alert("Your world could not be saved.\n"+e.Message,"Minecraft Desktop save problem");} }
     }
     private void Toast(string text)
     {

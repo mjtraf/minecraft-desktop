@@ -58,7 +58,7 @@ public partial class Main
     private void OpenDesktopSystem(string action)
     {
         ResetMouseActions();
-        if(!bridge.Connected) {Toast("Open Cozy Cave through its Windows launcher to use system controls.");return;}
+        if(!bridge.Connected) {Toast("Open Minecraft Desktop through its Windows launcher to use system controls.");return;}
         backgroundApp=true;walking=false;Input.MouseMode=Input.MouseModeEnum.Visible;ClearCracks();
         if(desktopHelperPid!=0) WindowsAppControl.AllowSetForegroundWindow(desktopHelperPid);
         bridge.Send(new {command="system",action});

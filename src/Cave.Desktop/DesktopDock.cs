@@ -25,7 +25,7 @@ internal sealed class DesktopDock:Form
     internal DesktopDock(Action<string,int> dispatch,Action<string[],bool> previews)
     {
         this.dispatch=dispatch;this.previews=previews;
-        Text="Cozy Cave hotbar";FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;DoubleBuffered=true;KeyPreview=true;BackColor=Color.FromArgb(31,28,24);
+        Text="Minecraft Desktop hotbar";FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;DoubleBuffered=true;KeyPreview=true;BackColor=Color.FromArgb(31,28,24);
         Image Asset(string name) {using var stream=typeof(DesktopDock).Assembly.GetManifestResourceStream(name)!;using var loaded=Image.FromStream(stream);return new Bitmap(loaded);}
         art=Asset("dock.hotbar.png");selection=Asset("dock.selection.png");
         hoverTimer.Tick+=(_,_)=>

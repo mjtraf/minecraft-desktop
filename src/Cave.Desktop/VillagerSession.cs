@@ -29,7 +29,7 @@ internal sealed class VillagerSession:IDisposable
             server=new Process {StartInfo=new ProcessStartInfo(FindCodex()) {UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true}};
             server.StartInfo.ArgumentList.Add("app-server");server.StartInfo.ArgumentList.Add("--stdio");server.Start();
             _=Pump(server);_=DrainErrors(server);
-            await Request("initialize",new {clientInfo=new {name="cozy_cave_villager",title="Cozy Cave Villager",version="1.0.0"}});
+            await Request("initialize",new {clientInfo=new {name="cozy_cave_villager",title="Minecraft Desktop Villager",version="1.0.0"}});
             await Write(new {method="initialized"});
         }finally{startGate.Release();}
     }
@@ -94,7 +94,7 @@ internal sealed class VillagerSession:IDisposable
         try
         {
             await Ensure();
-            string instructions="You are the user's villager assistant in Cozy Cave. Work on coding, research and documents as requested. You have the user's authorization for full local desktop access within their task. Ask before unrelated destructive actions or sending messages to others. Use the existing tools and skills. For Windows desktop control, execute the local helper with --agent-desktop followed by a JSON request FILE path. The helper executable is "+Environment.ProcessPath+". Actions: screenshot (writes a PNG at output and returns virtual-screen bounds), click (x,y, button left/right, double boolean), move (x,y), scroll (delta), text (text), key (keys in SendKeys notation). Read the result from the request file path plus .result.json. Coordinates are actual virtual desktop pixels. Read a screenshot before deciding where to click. This controls the user's real desktop. The workstation and cave can lose focus during these actions. Do not change Cozy Cave files unless asked. Explain progress in plain text; do not pretend an operation succeeded.";
+            string instructions="You are the user's villager assistant in Minecraft Desktop. Work on coding, research and documents as requested. You have the user's authorization for full local desktop access within their task. Ask before unrelated destructive actions or sending messages to others. Use the existing tools and skills. For Windows desktop control, execute the local helper with --agent-desktop followed by a JSON request FILE path. The helper executable is "+Environment.ProcessPath+". Actions: screenshot (writes a PNG at output and returns virtual-screen bounds), click (x,y, button left/right, double boolean), move (x,y), scroll (delta), text (text), key (keys in SendKeys notation). Read the result from the request file path plus .result.json. Coordinates are actual virtual desktop pixels. Read a screenshot before deciding where to click. This controls the user's real desktop. The workstation and cave can lose focus during these actions. Do not change Minecraft Desktop files unless asked. Explain progress in plain text; do not pretend an operation succeeded.";
             var options=new {cwd=folder,sandbox="danger-full-access",approvalPolicy="on-request",developerInstructions=instructions};
             JsonElement result;
             if(ThreadId==null)result=await Request("thread/start",options);

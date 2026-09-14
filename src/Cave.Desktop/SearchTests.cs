@@ -7,7 +7,7 @@ internal static class SearchTests
     {
         Directory.CreateDirectory(output);var results=new List<string>();
         void Check(bool ok,string text)=>results.Add((ok?"PASS ":"FAIL ")+text);
-        using var host=new Form {Text="Cozy Cave search check",TopMost=true,Width=360,Height=160,StartPosition=FormStartPosition.Manual,Location=new Point(Screen.PrimaryScreen!.WorkingArea.Right-390,100)};
+        using var host=new Form {Text="Minecraft Desktop search check",TopMost=true,Width=360,Height=160,StartPosition=FormStartPosition.Manual,Location=new Point(Screen.PrimaryScreen!.WorkingArea.Right-390,100)};
         var recovery=Path.Combine(output,"taskbar-recovery.json");
         host.Shown+=async(_,_)=>
         {

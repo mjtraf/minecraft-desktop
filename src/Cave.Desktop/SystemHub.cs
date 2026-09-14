@@ -37,7 +37,7 @@ internal sealed class SystemPanel:Form
     protected override void OnDeactivate(EventArgs e) {base.OnDeactivate(e);Close();}
     internal SystemPanel(Action restore,Action<string>? actionHandler=null)
     {
-        Text="Cozy Cave system inventory";FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;BackColor=Color.FromArgb(198,198,198);ClientSize=new Size(540,590);KeyPreview=true;
+        Text="Minecraft Desktop system inventory";FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;BackColor=Color.FromArgb(198,198,198);ClientSize=new Size(540,590);KeyPreview=true;
         var heading=new Label {Text="System inventory",Font=PixelTheme.Font(15),AutoSize=true,Location=new Point(18,15)};Controls.Add(heading);
         var status=SystemInformation.PowerStatus;
         string power=status.BatteryChargeStatus.HasFlag(BatteryChargeStatus.NoSystemBattery)?"Desktop power":$"Battery {status.BatteryLifePercent*100:0}%";
@@ -81,7 +81,7 @@ internal sealed class AppSearch:Form
     }
     internal AppSearch()
     {
-        Text="Cozy Cave app search";FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;BackColor=Color.FromArgb(198,198,198);ClientSize=new Size(550,580);KeyPreview=true;
+        Text="Minecraft Desktop app search";FormBorderStyle=FormBorderStyle.None;ShowInTaskbar=false;TopMost=true;BackColor=Color.FromArgb(198,198,198);ClientSize=new Size(550,580);KeyPreview=true;
         Controls.Add(new Label {Text="Find an app",Font=PixelTheme.Font(15),AutoSize=true,Location=new Point(18,16)});
         search.SetBounds(18,62,514,34);search.Font=PixelTheme.Font(12);search.BackColor=Color.FromArgb(65,65,65);search.ForeColor=Color.White;search.PlaceholderText="Search installed shortcuts...";Controls.Add(search);
         results.SetBounds(13,110,524,395);Controls.Add(results);

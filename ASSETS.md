@@ -15,6 +15,8 @@ The generated assets are legacy artwork, not a complete replacement for the pers
 
 ## Running the renderer
 
+`docs/media/` contains screenshots of the personal prototype for demonstration, including Minecraft artwork as it appears in the application. These are rendered captures, not a downloadable texture/model/sound pack. Some screenshots show the earlier Cozy Cave branding. No personal files or account details are displayed in the selected captures.
+
 A fresh clone does not contain the complete resource pack required by the renderer. Source references to `res://Assets/Vanilla/` describe the expected paths; they do not grant rights to those resources. A complete, compatible pack with permission for its intended use is needed before running or packaging. No automatic Minecraft asset downloader is provided in the repository.
 
 Do not publish the personal `dist/` folder: it includes the private resource pack. Replacing the resources with a distributable pack and validating it on a clean Windows machine remain future release work.

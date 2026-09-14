@@ -16,7 +16,7 @@ internal static class Program
         if(args.Contains("--dock-test")) {ApplicationConfiguration.Initialize();DockTests.Run(args[Array.IndexOf(args,"--dock-test")+1]);return;}
         if(args.Contains("--app-window-fixture"))
         {
-            ApplicationConfiguration.Initialize();using var form=new Form {Text="Cozy Cave app fixture",Width=500,Height=300};
+            ApplicationConfiguration.Initialize();using var form=new Form {Text="Minecraft Desktop app fixture",Width=500,Height=300};
             using var reveal=new System.Windows.Forms.Timer {Interval=150};reveal.Tick+=(_,_)=>{Native.ShowWindow(form.Handle,5);form.Activate();reveal.Stop();};reveal.Start();Application.Run(form);return;
         }
         if (args.FirstOrDefault() == "--watchdog")
@@ -92,7 +92,7 @@ internal sealed class DesktopContext : ApplicationContext
         smokeSeconds = GetArg("--smoke-seconds") is { } seconds ? int.Parse(seconds) : 0;
         _ = dispatcher.Handle;dispatcher.Recover=Restore;
         if(!Native.RegisterHotKey(dispatcher.Handle,0xCA,0x4003,0x7B)) Program.Log("Recovery shortcut unavailable; tray Restore remains available.");
-        tray = new NotifyIcon { Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!) ?? SystemIcons.Application, Text = "Cozy Cave", Visible = true };
+        tray = new NotifyIcon { Icon = Icon.ExtractAssociatedIcon(Environment.ProcessPath!) ?? SystemIcons.Application, Text = "Minecraft Desktop", Visible = true };
         var menu = new ContextMenuStrip();
         menu.Items.Add("Enter cave", null, (_, _) => Enter());
         menu.Items.Add("Pause / resume", null, (_, _) => { paused = !paused; Send("pause", new { value = paused }); });
@@ -132,7 +132,7 @@ internal sealed class DesktopContext : ApplicationContext
             watch.ArgumentList.Add("--watchdog"); watch.ArgumentList.Add(Environment.ProcessId.ToString()); watch.ArgumentList.Add(Program.RecoveryPath);
             Process.Start(watch);
         }
-        catch (Exception e) { Program.Log(e.ToString()); MessageBox.Show(e.Message, "Cozy Cave could not start"); dispatcher.BeginInvoke(Close); }
+        catch (Exception e) { Program.Log(e.ToString()); MessageBox.Show(e.Message, "Minecraft Desktop could not start"); dispatcher.BeginInvoke(Close); }
         timer.Tick += (_, _) => Tick(); timer.Start();
         SystemEvents.SessionSwitch += SessionChanged;
         SystemEvents.DisplaySettingsChanged += DisplayChanged;
@@ -410,20 +410,20 @@ internal sealed class DesktopContext : ApplicationContext
             if(testStep==3)
             {
                 backgroundTestParent=Native.GetParent(window);
-                backgroundTestWindow=new Form {Text="Cozy Cave external app test",StartPosition=FormStartPosition.Manual,Bounds=new Rectangle(Screen.WorkingArea.X+100,Screen.WorkingArea.Y+100,500,350)};
+                backgroundTestWindow=new Form {Text="Minecraft Desktop external app test",StartPosition=FormStartPosition.Manual,Bounds=new Rectangle(Screen.WorkingArea.X+100,Screen.WorkingArea.Y+100,500,350)};
                 backgroundTestWindow.Show();backgroundTestWindow.Activate();Background();
                 if(launchArgs.Contains("--apps-test")) appFixture=Process.Start(new ProcessStartInfo(Environment.ProcessPath!,"--app-window-fixture") {UseShellExecute=false,WindowStyle=ProcessWindowStyle.Hidden});
             }
             if(testStep==5)
             {
-                if(launchArgs.Contains("--apps-test") && !appWindows.List(window).Any(a=>a.Name=="Cozy Cave app fixture") && (DateTime.UtcNow-started).TotalSeconds<30) {testStep--;return;}
+                if(launchArgs.Contains("--apps-test") && !appWindows.List(window).Any(a=>a.Name=="Minecraft Desktop app fixture") && (DateTime.UtcNow-started).TotalSeconds<30) {testStep--;return;}
                 Program.Log("CHECK backgroundVisible="+(Native.IsWindowVisible(window)&&!Native.IsIconic(window)));
                 Program.Log("CHECK backgroundParentStable="+(backgroundTestParent==0&&Native.GetParent(window)==backgroundTestParent));
                 Program.Log("CHECK externalForeground="+(Native.GetForegroundWindow()==backgroundTestWindow!.Handle));
                 Program.Log("CHECK backgroundMode="+background);
                 if(launchArgs.Contains("--apps-test"))
                 {
-                    var apps=appWindows.List(window);var fixture=apps.FirstOrDefault(a=>a.Name=="Cozy Cave app fixture");appFixtureWindow=fixture?.Id;
+                    var apps=appWindows.List(window);var fixture=apps.FirstOrDefault(a=>a.Name=="Minecraft Desktop app fixture");appFixtureWindow=fixture?.Id;
                     Program.Log("CHECK appWindowListed="+(fixture!=null));
                     Program.Log("CHECK appWindowActivated="+(fixture!=null && appWindows.Activate(fixture.Id)));
                     Program.Log("CHECK appWindowForeground="+(fixture!=null && Native.GetForegroundWindow()==(nint)long.Parse(fixture.Id)));
