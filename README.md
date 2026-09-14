@@ -12,6 +12,10 @@ I wanted the desktop to feel like a room I could spend time in. This project bri
 
 ![A villager working at its computer](docs/media/villager.png)
 
+The workstation up close: type a task, follow its progress, and return to the room with Escape.
+
+![The live AI workstation controlled directly on a screen inside the cave](docs/media/workstation.png)
+
 **Interactive web TV.** The screen runs a live WebView2 browser. Aim and click to pause a video, type a search, or scroll through YouTube without leaving the room. TV and computer screens are movable black concrete blocks: hold to break and collect, then place matching blocks together for a larger display.
 
 **Files you can organize.** Chests hold links to real files and folders, with Windows icons, thumbnails, and folder navigation. Carry links between chests or move an entire chest with its contents intact. The original files stay where they are.

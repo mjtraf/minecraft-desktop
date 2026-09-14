@@ -65,6 +65,23 @@ public partial class Main
             int supply=state.SelectedSlot;MoveDesktopSelection(1);Check(state.SelectedSlot==supply,"App/system navigation does not change building inventory");
             SelectDesktopSlot(9);Check(desktopSelection==9 && desktopSystemSelection==null,"App page selection exits system selection");
             Check(Mathf.Abs(hotbar!.Size.X*hotbar.Scale.X/DockScale-546)<.1f,"In-game dock uses same 546 physical pixel hotbar as native dock");
+            // Exercise GUI routing: Space activates a focused Button before _UnhandledInput.
+            int searchActivations=0;var searchButton=dockSystemButtons["search"];
+            searchButton.Pressed+=()=>searchActivations++;
+            walking=false;Input.MouseMode=Input.MouseModeEnum.Visible;await Frames(2);
+            var searchPoint=searchButton.GetGlobalRect().GetCenter();
+            GetViewport().PushInput(new InputEventMouseButton {Position=searchPoint,GlobalPosition=searchPoint,ButtonIndex=MouseButton.Left,Pressed=true},true);
+            GetViewport().PushInput(new InputEventMouseButton {Position=searchPoint,GlobalPosition=searchPoint,ButtonIndex=MouseButton.Left,Pressed=false},true);await Frames(2);
+            Check(searchActivations==1,"Search still opens from a dock button click");
+            walking=false;ResumeCaveFocus();desktopSystemSelection="search";MoveDesktopSelection(2);
+            int opened=searchActivations;
+            for(int press=0;press<3;press++)
+            {
+                GetViewport().PushInput(new InputEventKey {Keycode=Key.Space,PhysicalKeycode=Key.Space,Pressed=true});
+                GetViewport().PushInput(new InputEventKey {Keycode=Key.Space,PhysicalKeycode=Key.Space,Pressed=false});await Frames(1);
+            }
+            Check(searchActivations==opened,"Jump after Search dismissal and wheel selection never reopens Search");
+            Check(GetViewport().GuiGetFocusOwner()==null,"Returning to walking releases GUI keyboard focus");
             desktopHotbarActive=true;desktopSystemSelection="search";walking=false;ResumeCaveFocus();status="Search dismissed";
             _UnhandledInput(new InputEventMouseButton {Pressed=true,ButtonIndex=MouseButton.Left});
             Check(status=="Search dismissed" && !mouseActionsReady,"Focus-return click is consumed without reopening selected Search");

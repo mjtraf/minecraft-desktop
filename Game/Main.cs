@@ -168,7 +168,7 @@ public partial class Main : Node3D
         if(walking)Release(false);
         else Input.MouseMode=Input.MouseModeEnum.Visible;
     }
-    private void StartWalking() { if(!walking)ResetMouseActions(); if(PointerInteractionOpen) {walking=false;Input.MouseMode=Input.MouseModeEnum.Visible;return;} walking = true; if(!desktopHotbarActive && placingKind == null && ResolveSupply(state.Hotbar[state.SelectedSlot]) is {} equipped) { placingKind=equipped.Kind;movingId=equipped.Id;RefreshHand(); } Input.MouseMode = Input.MouseModeEnum.Captured; Toast("WASD move   Space jump   G fly   Ctrl descend   Home return   Right-click open   E inventory   Tab settings   Hold Escape to return"); }
+    private void StartWalking() { if(!walking)ResetMouseActions(); if(PointerInteractionOpen) {walking=false;Input.MouseMode=Input.MouseModeEnum.Visible;return;} GetViewport().GuiReleaseFocus(); walking = true; if(!desktopHotbarActive && placingKind == null && ResolveSupply(state.Hotbar[state.SelectedSlot]) is {} equipped) { placingKind=equipped.Kind;movingId=equipped.Id;RefreshHand(); } Input.MouseMode = Input.MouseModeEnum.Captured; Toast("WASD move   Space jump   G fly   Ctrl descend   Home return   Right-click open   E inventory   Tab settings   Hold Escape to return"); }
     private void Release(bool returnToDesktop = true)
     {
         ResetMouseActions();

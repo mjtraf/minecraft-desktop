@@ -32,7 +32,8 @@ public partial class Main
         dockNormal=Face("747474");dockHighlight=Face("9196a2");
         foreach(var (label,action) in new[]{("Search","search"),("Desktop","desktop"),("System","system"),("","notifications")})
         {
-            var button=Button(label,()=>OpenDesktopSystem(action));button.TextureFilter=CanvasItem.TextureFilterEnum.Nearest;button.AddThemeFontOverride("font",GD.Load<FontFile>("res://Assets/Fonts/Pixel.ttf"));button.AddThemeFontSizeOverride("font_size",12);
+            // Dock selection uses the wheel and Enter; GUI focus would make Space reopen the last button.
+            var button=Button(label,()=>OpenDesktopSystem(action));button.FocusMode=Control.FocusModeEnum.None;button.TextureFilter=CanvasItem.TextureFilterEnum.Nearest;button.AddThemeFontOverride("font",GD.Load<FontFile>("res://Assets/Fonts/Pixel.ttf"));button.AddThemeFontSizeOverride("font_size",12);
             button.AddThemeStyleboxOverride("normal",dockNormal);button.AddThemeStyleboxOverride("hover",dockHighlight);button.AddThemeColorOverride("font_color",Colors.White);
             appDock.AddChild(button);dockSystemButtons[action]=button;
         }

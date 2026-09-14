@@ -36,7 +36,7 @@ public partial class Main
             if(bridge.Connected)
             {
                 for(int i=0;i<180 && workstationTexture==null;i++)await Frames(1);
-                bridge.Send(new{command="workstation-input",kind="text",text="In-world workstation input test"});
+                bridge.Send(new{command="workstation-input",kind="text",text="Summarize this project and suggest the next improvement."});
                 await Frames(35);
                 Check(workstationConnected && workstationTexture!=null,"The in-world computer receives the actual helper workstation feed");
                 GetViewport().GetTexture().GetImage().SavePng(System.IO.Path.Combine(output,"computer-focused.png"));
