@@ -10,6 +10,9 @@ public partial class Main
             System.IO.Directory.CreateDirectory(output);await Frames(30);
             Check(villager!=null,"Villager and workstation fit in existing cave without replacing contents");
             if(villager==null)throw new Exception("Villager could not spawn");
+            var font=MinecraftWorldFont();var glyph=font.GetGlyphIndex(8,'i',0);
+            Check(font.GetGlyphUVRect(0,new Vector2I(8,0),glyph).Size.X>=3,"World font retains a drawable region for narrow i glyph");
+            Check(font.GetStringSize("Villager Right-click",fontSize:25)==MinecraftFont().GetStringSize("Villager Right-click",fontSize:25),"World font padding preserves text advance and UI font spacing");
             if(bridge.Connected){for(int i=0;i<180 && workstationTexture==null;i++)await Frames(1);Check(workstationConnected && workstationTexture!=null,"Helper streams the live workstation into the in-world monitor");workstationTexture?.GetImage().SavePng(System.IO.Path.Combine(output,"monitor-live.png"));}
             Check(villagerLegs.Count==2 && Descendants(villagerHead).OfType<MeshInstance3D>().Count()==2,"Vanilla-textured villager has animated legs, head and nose");
             Check(villager.CollisionLayer==1 && villager.CollisionMask==5,"Villager collides with world and player");

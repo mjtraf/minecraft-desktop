@@ -58,7 +58,7 @@ public partial class Main
         CatBox(villagerHead,new Vector3(0,.125f,.3125f),new Vector3(2,4,2),new Vector2(24,0),texture);
         CatBox(villagerPose,new Vector3(0,1.16f,.22f),new Vector3(8,4,4),new Vector2(40,38),texture);
         foreach(float x in new[]{-.125f,.125f}){var leg=new Node3D {Position=new Vector3(x,.75f,0)};villagerPose.AddChild(leg);CatBox(leg,new Vector3(0,-.375f,0),new Vector3(4,12,4),new Vector2(0,22),texture);villagerLegs.Add(leg);}
-        villagerLabel=new Label3D {Text="Villager",Position=new Vector3(0,2.25f,0),Font=MinecraftFont(),FontSize=25,PixelSize=.006f,Billboard=BaseMaterial3D.BillboardModeEnum.Enabled,NoDepthTest=false};villager.AddChild(villagerLabel);
+        villagerLabel=new Label3D {Text="Villager",Position=new Vector3(0,2.25f,0),Font=MinecraftWorldFont(),TextureFilter=BaseMaterial3D.TextureFilterEnum.Nearest,FontSize=25,PixelSize=.006f,Billboard=BaseMaterial3D.BillboardModeEnum.Enabled,NoDepthTest=false};villager.AddChild(villagerLabel);
         villagerVoice=new AudioStreamPlayer3D {UnitSize=2,MaxDistance=10,AttenuationFilterCutoffHz=20500};villager.AddChild(villagerVoice);
         villagerGoal=spawn;Changed();
     }

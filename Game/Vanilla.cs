@@ -3,6 +3,29 @@ namespace CozyCave;
 public partial class Main
 {
     private FontFile? minecraftFont;
+    private FontFile? minecraftWorldFont;
+    private FontFile MinecraftWorldFont()
+    {
+        if (minecraftWorldFont != null) return minecraftWorldFont;
+        // Label3D insets glyph UVs by half a texel at each edge. A one-pixel
+        // region collapses; two-pixel stems also clip. Include the transparent
+        // neighboring columns without changing the glyph's advance or origin.
+        // Use a separate cache: UI labels must retain their original font data.
+        minecraftWorldFont = (FontFile)MinecraftFont().Duplicate(true);
+        foreach (var size in minecraftWorldFont.GetSizeCacheList(0))
+        foreach (var glyph in minecraftWorldFont.GetGlyphList(0, size))
+        {
+            var uv = minecraftWorldFont.GetGlyphUVRect(0, size, glyph);
+            if (uv.Size.X < 1 || uv.Size.X > 2 || uv.Position.X < 1) continue;
+            var extent = minecraftWorldFont.GetGlyphSize(0, size, glyph);
+            var offset = minecraftWorldFont.GetGlyphOffset(0, size, glyph);
+            uv.Position -= new Vector2(1, 0); uv.Size += new Vector2(2, 0);
+            minecraftWorldFont.SetGlyphUVRect(0, size, glyph, uv);
+            minecraftWorldFont.SetGlyphSize(0, size, glyph, extent + new Vector2(2, 0));
+            minecraftWorldFont.SetGlyphOffset(0, size, glyph, offset - new Vector2(1, 0));
+        }
+        return minecraftWorldFont;
+    }
     private FontFile MinecraftFont()
     {
         if(minecraftFont!=null) return minecraftFont;

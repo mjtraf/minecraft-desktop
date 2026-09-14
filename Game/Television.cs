@@ -87,7 +87,7 @@ public partial class Main
         tvMaterial=new StandardMaterial3D {AlbedoColor=tvOn?Colors.White:new Color("0c0e11"),AlbedoTexture=tvOn?tvTexture:null,ShadingMode=BaseMaterial3D.ShadingModeEnum.Unshaded,CullMode=BaseMaterial3D.CullModeEnum.Disabled};
         node.AddChild(new MeshInstance3D{Name="VideoScreen",Position=new Vector3(2,3,7.47f),RotationDegrees=new Vector3(0,180,0),Mesh=new QuadMesh{Size=new Vector2(3,1.6875f)},MaterialOverride=tvMaterial});
         Collider(node,new Vector3(2,3,7.44f),new Vector3(5,4,.04f),"$tv");
-        tvOffLabel=new Label3D {Text="TV\nClick to turn on",Position=new Vector3(2,3,7.40f),RotationDegrees=new Vector3(0,180,0),Font=MinecraftFont(),FontSize=30,PixelSize=.006f,Modulate=new Color("c4b792"),OutlineSize=0,Visible=!tvOn};node.AddChild(tvOffLabel);
+        tvOffLabel=new Label3D {Text="TV\nClick to turn on",Position=new Vector3(2,3,7.40f),RotationDegrees=new Vector3(0,180,0),Font=MinecraftWorldFont(),TextureFilter=BaseMaterial3D.TextureFilterEnum.Nearest,FontSize=30,PixelSize=.006f,Modulate=new Color("c4b792"),OutlineSize=0,Visible=!tvOn};node.AddChild(tvOffLabel);
     }
     private void TvCommand(string action)
     {
