@@ -25,6 +25,26 @@ public partial class Main
     private readonly Dictionary<string,VillagerActor> agents=[];
     private bool villagersBuilt,voiceHeld,voicePending;
     private string? voiceRecorder,voiceTarget;
+    private readonly VoiceConversation voiceConversation=new();
+    private Label? conversationLabel;
+    private void EndVoiceConversation(){voiceConversation.End();if(conversationLabel!=null)conversationLabel.Visible=false;}
+    private void UpdateVoiceConversation()
+    {
+        if(locked)EndVoiceConversation();
+        var id=voiceConversation.Active(state.Agents,DateTime.UtcNow);
+        if(id!=null && (voiceHeld || voicePending))voiceConversation.Touch(DateTime.UtcNow);
+        if(conversationLabel==null)
+        {
+            conversationLabel=new Label{Theme=uiTheme,Position=new Vector2(24,76),MouseFilter=Control.MouseFilterEnum.Ignore};
+            conversationLabel.AddThemeFontSizeOverride("font_size",14);
+            conversationLabel.AddThemeColorOverride("font_color",new Color("eee5cf"));
+            conversationLabel.AddThemeColorOverride("font_shadow_color",new Color("19201b"));
+            conversationLabel.AddThemeConstantOverride("shadow_offset_x",2);conversationLabel.AddThemeConstantOverride("shadow_offset_y",2);
+            layer.AddChild(conversationLabel);
+        }
+        conversationLabel.Visible=id!=null && !backgroundApp && !paused && !locked && panel==null;
+        if(id!=null)conversationLabel.Text=$"Talking to {state.Agents.First(a=>a.Id==id).Name} · Hold V to reply · Esc to end";
+    }
     private Vector3 workstationAt;
     private float villagerSyncDelay;
     private ImageTexture? workstationTexture=>agents.GetValueOrDefault(AgentRegistry.LegacyId)?.Texture;
@@ -197,10 +217,11 @@ public partial class Main
     }
     private bool HandleVillagerInput(InputEvent e)
     {
+        if(e is InputEventKey{Keycode:Key.Escape,Pressed:true,Echo:false}){EndVoiceConversation();CancelVillagerSpeech();return false;}
         if(e is not InputEventKey key||key.Keycode!=Key.V||key.Echo)return false;
         if(key.Pressed && walking && !PointerInteractionOpen && !paused && !locked && agents.Count>0)
         {
-            voiceTarget=CanTalkToVillager()?TargetVillagerId():null;voiceRecorder=voiceTarget??agents.Keys.First();voiceHeld=true;voicePending=true;
+            voiceTarget=voiceConversation.Active(state.Agents,DateTime.UtcNow)??(CanTalkToVillager()?TargetVillagerId():null);voiceConversation.Touch(DateTime.UtcNow);voiceRecorder=voiceTarget??agents.Keys.First();voiceHeld=true;voicePending=true;
             bridge.Send(new{command="villager",agentId=voiceRecorder,action="mic-start"});Toast("Hold V: say a villager's name, then your request. Release to review.");GetViewport().SetInputAsHandled();return true;
         }
         if(!key.Pressed && voiceHeld){voiceHeld=false;bridge.Send(new{command="villager",agentId=voiceRecorder,action="mic-stop"});GetViewport().SetInputAsHandled();return true;}return false;
@@ -274,16 +295,18 @@ public partial class Main
     private void ReviewVillagerVoice(string text)
     {
         if(!voicePending)return;voicePending=false;
-        var addressed=AgentRegistry.Address(state.Agents,text,voiceTarget);voiceTarget=null;
+        var addressed=voiceConversation.Address(state.Agents,text,voiceTarget,DateTime.UtcNow);voiceTarget=null;
+        if(VoiceConversation.IsGoodbye(addressed.Prompt)){EndVoiceConversation();Toast("Conversation ended. Your villager's work continues.");return;}
         var box=OpenPanel("Voice request",addressed.Id==null?"Choose who you meant, then review your request.":"Review the villager and request before sending.");
         var recipients=new OptionButton();foreach(var profile in state.Agents)recipients.AddItem(profile.Name);box.AddChild(recipients);
         recipients.Select(addressed.Id==null?-1:state.Agents.FindIndex(a=>a.Id==addressed.Id));
         var entry=new TextEdit{Text=addressed.Prompt,CustomMinimumSize=new Vector2(640,160),WrapMode=TextEdit.LineWrappingMode.Boundary};box.AddChild(entry);
-        box.AddChild(Button("Send task",()=>{if(recipients.Selected<0){Toast("Choose a villager first.");return;}var prompt=entry.Text.Trim();if(prompt.Length==0)return;var id=state.Agents[recipients.Selected].Id;bridge.Send(new{command="villager",agentId=id,action="send",text=prompt});ClosePanelAndResume();if(agents.TryGetValue(id,out var a))VillagerHmm(a);}));
+        box.AddChild(Button("Send task",()=>{if(recipients.Selected<0){Toast("Choose a villager first.");return;}var prompt=entry.Text.Trim();if(prompt.Length==0)return;var id=state.Agents[recipients.Selected].Id;if(agents.TryGetValue(id,out var busy) && busy.Working){Toast("This villager is still working. Keep this reply here until it finishes, or stop it at its workstation.");return;}voiceConversation.Select(id,DateTime.UtcNow);bridge.Send(new{command="villager",agentId=id,action="send",text=prompt});ClosePanelAndResume();if(agents.TryGetValue(id,out var a))VillagerHmm(a);}));
         box.AddChild(Button("Cancel",ClosePanelAndResume));
     }
     private void UpdateWorkstation(float dt)
     {
+        UpdateVoiceConversation();
         if(paused||locked)return;
         if((villagerSyncDelay-=dt)<=0){villagerSyncDelay=5;if(agents.Values.Any(a=>a.Body==null && a.HasScreen))SyncVillagers();}
         foreach(var a in agents.Values)

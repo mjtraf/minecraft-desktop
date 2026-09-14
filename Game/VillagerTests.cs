@@ -74,6 +74,16 @@ public partial class Main
             Descendants(panel!).OfType<Button>().Single(b=>b.Text=="Type request instead").EmitSignal(Godot.Button.SignalName.Pressed);
             Check(state.Agents[Descendants(panel!).OfType<OptionButton>().Single().Selected].Id==robin.Profile.Id,"Typing after microphone failure preserves the selected villager");ClosePanelAndResume();
             Changed();Check(!dirty && store.Load().WorkstationPosition.SequenceEqual(state.WorkstationPosition),"Workstation position persists in saved world");
+            voiceConversation.Select(robin.Profile.Id,DateTime.UtcNow);hovered=null;walking=true;UpdateVoiceConversation();
+            Check(conversationLabel is {Visible:true} && conversationLabel.Text.Contains("Talking to Robin"),"Conversation indicator identifies the active villager");
+            voicePending=true;voiceTarget=null;ReviewVillagerVoice("Actually, make it smaller");
+            Check(state.Agents[Descendants(panel!).OfType<OptionButton>().Single().Selected].Id==robin.Profile.Id,"Unnamed follow-up selects the active villager from anywhere");ClosePanelAndResume();
+            voicePending=true;ReviewVillagerVoice("Thanks, that's all!");
+            Check(panel==null && voiceConversation.Active(state.Agents,DateTime.UtcNow)==null,"Spoken goodbye closes conversation without opening a task review");
+            voiceConversation.Select(robin.Profile.Id,DateTime.UtcNow);HandleVillagerInput(new InputEventKey{Keycode=Key.Escape,Pressed=true});
+            Check(voiceConversation.Active(state.Agents,DateTime.UtcNow)==null,"Escape clears conversation focus");
+            voiceConversation.Select(robin.Profile.Id,DateTime.UtcNow);locked=true;UpdateVoiceConversation();locked=false;
+            Check(!conversationLabel!.Visible && voiceConversation.Active(state.Agents,DateTime.UtcNow)==null,"Session lock clears conversation and hides its indicator");
             Check(GD.Load<AudioStream>("res://Assets/Vanilla/villager_idle1.ogg")!=null,"Original villager acknowledgement sound loads");
             System.IO.File.WriteAllLines(System.IO.Path.Combine(output,"results.txt"),results);
         }catch(Exception e){System.IO.File.WriteAllText(System.IO.Path.Combine(output,"failure.txt"),e.ToString());}

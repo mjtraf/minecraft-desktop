@@ -32,7 +32,7 @@ public static class AgentRegistry
         text=text.Trim();
         foreach(var agent in agents.OrderByDescending(a=>a.Name.Length))
         {
-            var match=Regex.Match(text,@"^(?:(?:hey|hello|hi|okay|ok)\s+)?"+Regex.Escape(agent.Name)+@"(?=$|[\s,:.!?])[,\s:!?.]*",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant);
+            var match=Regex.Match(text,@"^(?:(?:hey|hello|hi|okay|ok)[,\s]+)?"+Regex.Escape(agent.Name)+@"(?=$|[\s,:.!?])[,\s:!?.]*",RegexOptions.IgnoreCase|RegexOptions.CultureInvariant);
             if(match.Success)return(agent.Id,text[match.Length..].Trim());
         }
         return(fallback,text);

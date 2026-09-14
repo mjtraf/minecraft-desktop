@@ -57,6 +57,8 @@ Saves live in `%LOCALAPPDATA%/CozyCave/`. Internal identifiers and paths retain 
 
 Voice is push-to-talk in the cave. Say “Alex, research…” while holding V. The review shows the recipient and text; unrecognized names require choosing a villager. Release V to transcribe, review the text, then choose Send task. Audio stays in memory and is not saved or uploaded. Empty recordings and recognition failures offer sound settings, permissions, or typing. Recording uses the Windows default microphone and stops after 60 seconds. The shared model unloads after five idle minutes; the next request includes a short loading delay. Accuracy still depends on the microphone, background sound, and speech.
 
+After you confirm a voice request, **Talking to [name]** shows who will receive follow-ups. Hold V again to reply without repeating the name. Starting with another villager's name selects that villager for review; confirming switches the conversation. Walking near another villager does not redirect it. Escape, “thanks, that's all,” “end conversation,” or two idle minutes clears the selection. Session lock also clears it. Ending conversation mode does not stop a task or erase its history. Each request still needs confirmation; a reply to a busy villager remains in review until it finishes.
+
 ## Project studio
 
 Press P to open the board. Minecraft Desktop is the first project; when running from a repository checkout, its folder is found automatically. Choose **Goal & team**, set a concrete milestone, select only the villagers you want involved, and choose the lead. Separate project conversations preserve each villager's personal history.
