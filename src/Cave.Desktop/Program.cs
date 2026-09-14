@@ -141,6 +141,7 @@ internal sealed partial class DesktopContext : ApplicationContext
         timer.Tick += (_, _) => Tick(); timer.Start();
         SystemEvents.SessionSwitch += SessionChanged;
         SystemEvents.DisplaySettingsChanged += DisplayChanged;
+        if(GetArg("--system-popup-test") is {} systemTest)_=RunSystemPopupTest(systemTest);
     }
     private string? GetArg(string key) { int i = Array.IndexOf(launchArgs, key); return i >= 0 && i + 1 < launchArgs.Length ? launchArgs[i + 1] : null; }
     private Screen Screen => System.Windows.Forms.Screen.AllScreens.FirstOrDefault(s => s.DeviceName == monitor) ?? System.Windows.Forms.Screen.PrimaryScreen!;
@@ -194,6 +195,7 @@ internal sealed partial class DesktopContext : ApplicationContext
         }
         if(action=="system")
         {
+            Background();previews?.Close();
             systemPopup?.Dispose();systemPopup=new SystemPanel(Restore,a=>{if(a=="desktop") Enter();else SystemHub.Action(a);});
             systemPopup.StartPosition=FormStartPosition.Manual;var area=Screen.WorkingArea;
             systemPopup.Location=new Point(Math.Max(area.Left,Math.Min(area.Right-systemPopup.Width,area.Left+(area.Width-systemPopup.Width)/2)),Math.Max(area.Top,area.Bottom-systemPopup.Height-6));
@@ -330,6 +332,9 @@ internal sealed partial class DesktopContext : ApplicationContext
     private void Enter()
     {
         if(DateTime.UtcNow<searchLaunchUntil)return;
+        // Ignore queued cave focus requests while a native popup owns interaction.
+        // A real outside click deactivates and closes the popup before returning here.
+        if(systemPopup is {IsDisposed:false,Visible:true}){Send("release");return;}
         if (window == 0 || !Native.IsWindow(window)) return;
         background=false;dock?.Hide();
         if(active && Native.GetParent(window)==0 && Native.GetForegroundWindow()==window) { Send("entered"); return; }
