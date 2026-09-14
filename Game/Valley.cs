@@ -102,10 +102,19 @@ public partial class Main
             body.AddChild(new CollisionShape3D {Shape=new ConcavePolygonShape3D {Data=faces.ToArray(),BackfaceCollision=true}});
         }
     }
-    private string? RayItem(Godot.Collections.Dictionary hit)
+    private string? RayItem(Godot.Collections.Dictionary hit,bool throughSeatedVillager=true)
     {
         if(hit.Count==0 || hit["collider"].AsGodotObject() is not Node body || !body.HasMeta("item"))return null;
-        string id=body.GetMeta("item").AsString();if(id!="$valley")return id;
+        string id=body.GetMeta("item").AsString();
+        if(throughSeatedVillager && id.StartsWith("$villager:") && agents.TryGetValue(id[10..],out var villager) && villager.Seated && villager.Body!=null)
+        {
+            // Only prioritize this villager's actual screen, not walls or other objects behind it.
+            var query=PhysicsRayQueryParameters3D.Create(camera.GlobalPosition,camera.GlobalPosition-camera.GlobalBasis.Z*4);
+            query.Exclude=[player.GetRid(),villager.Body.GetRid()];
+            var behind=RayItem(GetWorld3D().DirectSpaceState.IntersectRay(query),false);
+            if(SurfaceFor(behind) is {Role:"desktop"} screen && screen.AgentId==villager.Profile.Id && TryScreenAimBounds(screen))return behind;
+        }
+        if(id!="$valley")return id;
         var p=hit["position"].AsVector3()-hit["normal"].AsVector3()*.02f;
         return ValleyId(new(Mathf.RoundToInt(p.X),Mathf.FloorToInt(p.Y),Mathf.RoundToInt(p.Z)));
     }

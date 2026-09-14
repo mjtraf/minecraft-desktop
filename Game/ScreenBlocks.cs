@@ -74,7 +74,8 @@ public partial class Main
         foreach(var surface in screenSurfaces)foreach(var label in surface.Node.GetChildren().OfType<Label3D>())
             label.Visible=surface.Role=="tv"?(!tvOn || tvTexture==null):!agents.TryGetValue(surface.AgentId??"",out var a)||a.Texture==null;
     }
-    private bool TryScreenAim(ScreenSurface surface,out Vector2 uv,Vector2? pointer=null)
+    private bool TryScreenAimBounds(ScreenSurface surface)=>TryScreenAim(surface,out _,null,true);
+    private bool TryScreenAim(ScreenSurface surface,out Vector2 uv,Vector2? pointer=null,bool boundsOnly=false)
     {
         uv=default;
         if(!GodotObject.IsInstanceValid(surface.Node))return false;
@@ -86,6 +87,7 @@ public partial class Main
         var at=localOrigin+localDirection*distance;
         uv=new Vector2(.5f-at.X/surface.Size.X,.5f-at.Y/surface.Size.Y);
         if(uv.X<0 || uv.X>1 || uv.Y<0 || uv.Y>1)return false;
+        if(boundsOnly)return true;
         // The focused display owns input; furniture and villagers must not occlude its controls.
         if(tvFocused && surface==activeScreen)return true;
         var query=PhysicsRayQueryParameters3D.Create(origin,origin+direction*6);query.Exclude=[player.GetRid()];

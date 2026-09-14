@@ -115,7 +115,9 @@ public partial class Main
             var station=new Vector3(screen.X,screen.Y-1,screen.Z);float facing=Mathf.DegToRad(screen.Rotation);
             if(station!=a.Station || facing!=a.Facing){a.Seated=false;a.Route.Clear();a.RouteDelay=0;}
             a.Station=station;a.Facing=facing;var basis=new Basis(Vector3.Up,facing);
-            a.Seat=station+basis*new Vector3(0,.5f,-.8f);a.Approach=station+basis*new Vector3(0,0,-2);
+            // Body origin is at the feet when standing; hips are 0.75 blocks above it.
+            // A half-block chair therefore needs a -0.25 seated origin, behind the screen.
+            a.Seat=station+basis*new Vector3(0,-.25f,-1.15f);a.Approach=station+basis*new Vector3(0,0,-2);
             if(VillagerWalkable(a,new Vector2I(Mathf.RoundToInt(a.Approach.X*2),Mathf.RoundToInt(a.Approach.Z*2)),station.Y+1,out var approachFloor))a.Approach.Y=approachFloor.Y;
             if(a.Body!=null)continue;
             if(profile.Id!=AgentRegistry.LegacyId && !HasAgentChair(a))
@@ -192,6 +194,8 @@ public partial class Main
     private void UpdateVillager(VillagerActor a,float dt)
     {
         if(a.Body==null)return;a.Voice.StreamPaused=false;a.Time+=dt;a.RouteDelay-=dt;a.NotifyCooldown-=dt;
+        bool viewingOwnScreen=tvFocused && activeScreen?.Role=="desktop" && activeScreen.AgentId==a.Profile.Id;
+        a.Pose.Visible=!viewingOwnScreen;a.Label.Visible=!viewingOwnScreen;
         bool approach=a.NeedsInput && a.Profile.ApproachForQuestions && walking && !backgroundApp && panel==null && !tvFocused;
         bool atDesk=(a.Working || voiceConversation.Active(state.Agents,DateTime.UtcNow)==a.Profile.Id) && !a.NeedsInput && a.HasScreen;
         if(a.Seated && !atDesk)
@@ -223,7 +227,10 @@ public partial class Main
             if(atDesk && a.Body.Position.DistanceTo(a.Approach)<.4f && HasAgentChair(a))
             {a.Seated=true;a.Body.Position=a.Seat;a.Body.Rotation=new Vector3(0,a.Facing,0);a.Body.Velocity=Vector3.Zero;a.Route.Clear();foreach(var leg in a.Legs)leg.RotationDegrees=new Vector3(-90,0,0);}
         }
-        var toward=player.GlobalPosition-a.Body.GlobalPosition;float yaw=Mathf.Wrap(Mathf.Atan2(toward.X,toward.Z)-a.Body.Rotation.Y,-Mathf.Pi,Mathf.Pi);a.Head.Rotation=new Vector3(0,Mathf.Clamp(yaw,-.8f,.8f),0);
+        var collider=a.Body.GetChildren().OfType<CollisionShape3D>().Single();var capsule=(CapsuleShape3D)collider.Shape;
+        float height=a.Seated?1.65f:1.9f;if(capsule.Height!=height)capsule.Height=height;
+        collider.Position=new Vector3(0,a.Seated?1.075f:.95f,0);
+        var toward=player.GlobalPosition-a.Body.GlobalPosition;float yaw=Mathf.Wrap(Mathf.Atan2(toward.X,toward.Z)-a.Body.Rotation.Y,-Mathf.Pi,Mathf.Pi);a.Head.Rotation=new Vector3(0,a.Seated?0:Mathf.Clamp(yaw,-.8f,.8f),0);
         a.Wave=Math.Max(0,a.Wave-dt);a.Arms.Rotation=new Vector3(a.Wave>0?-.35f:0,0,a.Wave>0?Mathf.Sin(a.Time*8)*.2f:0);
         a.Label.Text=a.Profile.Name+"\n"+(voiceHeld && voiceTarget==a.Profile.Id?"Listening…":a.NeedsInput?"Needs your answer":a.Working?(a.Seated?"Working…":"Heading to computer…"):a.Status);
     }
@@ -317,7 +324,7 @@ public partial class Main
         if(VoiceConversation.IsGoodbye(addressed.Prompt)){EndVoiceConversation();Toast("Conversation ended. Your villager's work continues.");return;}
         if(!requireReview && addressed.Id is {} called && addressed.Prompt.Length==0 && text.Trim().Length>0)
         {ActivateVoiceConversation(called);Toast($"Talking to {state.Agents.First(p=>p.Id==called).Name}. Hold V to give a request.");return;}
-        if(!requireReview && addressed.Id is {} target && addressed.Prompt.Length>0 && bridge.Connected && agents.TryGetValue(target,out var ready) && !ready.Working)
+        if(!requireReview && addressed.Id is {} target && addressed.Prompt.Length>0 && (bridge.Connected||selfTesting) && agents.TryGetValue(target,out var ready) && !ready.Working)
         {SendVoiceRequest(target,addressed.Prompt);return;}
         var box=OpenPanel("Voice request",addressed.Id==null?"Choose who you meant, then review your request.":"Review the villager and request before sending.");
         var recipients=new OptionButton();foreach(var profile in state.Agents)recipients.AddItem(profile.Name);box.AddChild(recipients);
